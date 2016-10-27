@@ -602,7 +602,7 @@ sub _execute {
         eval { $sub->($self,$request) };
         my $err = ($@ or '');
         $request->error($err);
-        $request->status('done');
+        $request->status('done') if $request->status() ne 'done';
         return $err;
     }
 
@@ -615,7 +615,7 @@ sub _execute {
         };
         my $err = ( $@ or '');
         $request->error($err);
-        $request->status('done');
+        $request->status('done') if $request->status() ne 'done';
         exit;
     }
     $self->_add_pid($pid, $request->id);
@@ -668,12 +668,16 @@ sub _cmd_create{
     $request->status('creating domain');
     warn "$$ creating domain"   if $DEBUG;
     my $domain;
+
     $domain = $self->create_domain(%{$request->args},request => $request);
 
     my $msg = '';
+
     if ($domain) {
-        $msg = 'Domain '.$request->args('name')." created. "
-            ."<a href=\"/machine/view/".$domain->id.".html>Start</a>";
+       $msg = 'Domain '
+            ."<a href=\"/machine/view/".$domain->id.".html\">"
+            .$request->args('name')."</a>"
+            ."created."
         ;
     }
 
@@ -794,8 +798,12 @@ sub _cmd_start {
     my $user = Ravada::Auth::SQL->search_by_id($uid);
 
     $domain->start($user);
-
-    $request->status('done');
+    my $msg = 'Domain '
+            ."<a href=\"/machine/view/".$domain->id.".html\">"
+            .$request->args('name')."</a>"
+            ."started"
+        ;
+    $request->status('done', $msg);
 
 }
 

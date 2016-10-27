@@ -199,6 +199,8 @@ any '/machine/manage/*html' => sub {
 
 get '/machine/view/*.html' => sub {
     my $c = shift;
+    return $c->redirect_to('/login') if !_logged_in($c);
+
     return view_machine($c);
 };
 
@@ -480,12 +482,6 @@ sub users {
 sub new_machine {
     my $c = shift;
     my @error = ();
-    my $ram = ($c->param('ram') or 2);
-    my $disk = ($c->param('disk') or 8);
-    my $backend = $c->param('backend');
-    my $id_iso = $c->param('id_iso');
-    my $id_template = $c->param('id_template');
-
     if ($c->param('submit')) {
         push @error,("Name is mandatory")   if !$c->param('name');
         req_new_domain($c);
@@ -505,6 +501,8 @@ sub req_new_domain {
         ,id_template => $c->param('id_template')
         ,vm=> $c->param('backend')
         ,id_owner => $USER->id
+        ,memory => int($c->param('memory')*1024*1024)
+        ,disk => int($c->param('disk')*1024*1024*1024)
     );
 
     return $req;
@@ -667,7 +665,7 @@ sub _search_requested_machine {
         if !$id;
 
     my $domain = $RAVADA->search_domain_by_id($id) or do {
-        $c->stash( error => "Unknown base id=$id");
+        $c->stash( error => "Unknown domain id=$id");
         return;
     };
 
@@ -734,6 +732,7 @@ sub view_machine {
     return login($c) if !_logged_in($c);
 
     $domain =  _search_requested_machine($c) if !$domain;
+    return $c->render(template => 'bootstrap/fail') if !$domain;
     return show_link($c, $domain);
 }
 
