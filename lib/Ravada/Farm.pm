@@ -6,7 +6,7 @@ use strict;
 use Carp qw(confess croak cluck);
 use Data::Dumper;
 
-use Moose;
+use Moose::Role;
 
 our $CONNECTOR;
 
@@ -22,6 +22,12 @@ has 'name' => (
     ,is => 'ro'
 );
 
+has 'nodes' => (
+    isa => 'ArrayRef'
+    ,is => 'rw'
+    ,default => sub { [] }
+);
+
 ###############################################################
 
 sub _init_connector {
@@ -30,5 +36,13 @@ sub _init_connector {
 }
 
 ###############################################################
+
+sub add_node {
+    my $self = shift;
+    my $node = shift or confess "Missing node";
+
+    push  @{$self->nodes},($node);
+
+}
 
 1;

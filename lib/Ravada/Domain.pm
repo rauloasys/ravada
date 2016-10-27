@@ -8,6 +8,7 @@ use Data::Dumper;
 use Image::Magick;
 use JSON::XS;
 use Moose::Role;
+use Moose::Util::TypeConstraints;
 use Sys::Statistics::Linux;
 
 our $TIMEOUT_SHUTDOWN = 20;
@@ -68,6 +69,11 @@ has '_vm' => (
     is => 'ro',
     ,isa => 'Object'
     ,required => 1
+);
+
+has 'farm' => (
+    is => 'rw',
+    ,isa => 'Object'
 );
 
 ##################################################################################3

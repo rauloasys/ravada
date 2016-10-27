@@ -1,6 +1,7 @@
 use warnings;
 use strict;
 
+use Data::Dumper;
 use Test::More;
 use Test::SQL::Data;
 
@@ -16,13 +17,13 @@ use_ok('Ravada::Farm');
 
 sub test_domain_ip {
     my ($vm_name, $farm, $domain) = @_;
-    my $display = $domain->display();
+    my $display = $domain->display($USER);
     
-    my ($ip) = $display =~ m{\d+\.\d+\.\d+\.\d+};
+    my ($ip) = $display =~ m{(\d+\.\d+\.\d+\.\d+)};
     
     my $found = 0;
-    for my $vm ( $farm->list_vms) {
-        $found++ if $vm->ip == $ip;
+    for my $vm ( @{$farm->nodes}) {
+        $found++ if $vm->ip eq $ip;
     }
     
     ok($found == 1, "Domain ip ($ip) expected in 1 VM, found in $found VMs");
@@ -45,23 +46,28 @@ for my $vm_name (qw(Void KVM)) {
     my $vm = $RVD_BACK->search_vm($vm_name);
     $farm->add_node($vm);
 
+    warn Dumper($farm->nodes);
+
     my $domain = $RVD_BACK->create_domain( 
                vm => $vm
             ,name => new_domain_name()
         ,id_owner => $USER->id
     );
     
-    $domain->add_to_farm($farm);
+    $domain->farm($farm);
+    ok($domain->farm,"Expecting domain belongs to a farm");
     
     ok($domain->farm eq $farm,"Expecting farm for domain ='$farm' "
                                 .", got ".$domain->farm);
     
-    $domain->start();
+    $domain->start($USER);
     test_domain_ip($vm_name, $farm, $domain);
     
     my $clone = $domain->clone($USER);
     $clone->start();
     test_domain_ip($vm_name, $farm, $clone);
-    
+
+    ok($clone->farm,"Expecting clone belongs to a farm");
+    ok($clone->farm eq $domain->farm,"Expecting clone belongs to the base farm");
 }
 done_testing();
