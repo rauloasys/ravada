@@ -54,6 +54,7 @@ has 'readonly' => (
 # 
 #
 before 'create_domain' => \&_check_create_domain;
+after 'create_domain' => \&_post_create_domain;
 
 sub _check_readonly {
     my $self = shift;
@@ -183,6 +184,22 @@ sub _check_create_domain {
     $self->_check_memory(@_);
     $self->_check_disk(@_);
 
+}
+
+sub _post_create_domain {
+    my $self = shift;
+
+    my %args = @_;
+
+    return if !$args{id_base};
+
+    warn "_POST_CREATE ".Dumper(\%args);
+
+    my $base = $self->search_domain_by_id($args{id_base});
+
+    my $domain = $self->search_domain($args{name});
+    warn($base->farm() or "Base ".$base->name." not farm");
+    $domain->farm($base->farm())  if $base->farm();
 }
 
 1;
