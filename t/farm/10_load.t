@@ -73,11 +73,7 @@ for my $vm_name (qw(Void KVM)) {
     );
     
     test_domain_farm($vm_name, $domain, $farm);
-<<<<<<< HEAD
-
-=======
     
->>>>>>> 6c2b3b462a3a84b9e3cd8f7e4992c34899a96f79
     $domain->start($USER);
     test_domain_ip($vm_name, $farm, $domain);
     
@@ -87,10 +83,6 @@ for my $vm_name (qw(Void KVM)) {
 
     ok($clone->farm,"Expecting clone belongs to a farm");
     ok($clone->farm && $clone->farm eq $domain->farm
-<<<<<<< HEAD
         ,"Expecting clone belongs to the base farm");
-=======
-            ,"Expecting clone belongs to the base farm");
->>>>>>> 6c2b3b462a3a84b9e3cd8f7e4992c34899a96f79
 }
 done_testing();
