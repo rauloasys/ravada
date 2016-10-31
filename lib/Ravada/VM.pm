@@ -54,6 +54,8 @@ has 'readonly' => (
 # 
 #
 before 'create_domain' => \&_check_create_domain;
+after 'create_domain' => \&_post_create_domain;
+
 
 sub _check_readonly {
     my $self = shift;
@@ -154,7 +156,8 @@ sub ip {
     return $ip if $ip && $ip !~ /^127\./;
 
     warn "WARNING: I can't find the IP of host $name, using localhost."
-        ." This virtual machine won't be available from the network.";
+        ." This virtual machine won't be available from the network."
+            if $0 !~ /\.t$/;
 
     return '127.0.0.1';
 }
@@ -183,6 +186,17 @@ sub _check_create_domain {
     $self->_check_memory(@_);
     $self->_check_disk(@_);
 
+}
+
+sub _post_create_domain {
+    my $self = shift;
+    my %args = @_;
+
+    return if !$args{id_base};
+
+    my $base = $self->search_domain_by_id($args{id_base});
+    my $domain = $self->search_domain($args{name});
+    $domain->farm($base->farm) if $base->farm;
 }
 
 1;

@@ -11,6 +11,7 @@ CREATE TABLE `domains` (
   `port` int(5),
   `id_owner` int(11),
   `vm` char(120) NOT NULL,
+  `id_farm` integer,
   PRIMARY KEY (`id`),
   UNIQUE KEY `id_base` (`id_base`,`name`),
   UNIQUE KEY `name` (`name`)
