@@ -155,7 +155,8 @@ sub ip {
     return $ip if $ip && $ip !~ /^127\./;
 
     warn "WARNING: I can't find the IP of host $name, using localhost."
-        ." This virtual machine won't be available from the network.";
+        ." This virtual machine won't be available from the network."
+            if $0 !~ /\.t$/;
 
     return '127.0.0.1';
 }
@@ -193,13 +194,9 @@ sub _post_create_domain {
 
     return if !$args{id_base};
 
-    warn "_POST_CREATE ".Dumper(\%args);
-
     my $base = $self->search_domain_by_id($args{id_base});
-
     my $domain = $self->search_domain($args{name});
-    warn($base->farm() or "Base ".$base->name." not farm");
-    $domain->farm($base->farm())  if $base->farm();
+    $domain->farm($base->farm) if $base->farm;
 }
 
 1;

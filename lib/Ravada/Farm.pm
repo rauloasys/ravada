@@ -28,6 +28,11 @@ has 'nodes' => (
     ,default => sub { [] }
 );
 
+has 'id' => (
+    isa => 'Int'
+    ,is => 'ro'
+);
+
 ###############################################################
 
 sub _init_connector {
@@ -43,6 +48,30 @@ sub add_node {
 
     push  @{$self->nodes},($node);
 
+}
+
+sub BUILD {
+    my $self = shift;
+    my ($args) = @_;
+
+    my $id = $args->{id};
+    my $name = $args->{name};
+
+    confess "ERROR: supply either id or name, not both ".Dumper(\@_)
+        if defined $id && defined $name;
+
+    return $self->open($id)     if defined $id;
+    return $self->create(%$args) if $name;
+    
+    confess "ERROR: supply at least id or name ".Dumper(\@_);
+}
+
+sub open {
+    #TODO: load from DB
+}
+
+sub create {
+    #TODO: insert int DB
 }
 
 1;

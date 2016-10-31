@@ -71,7 +71,7 @@ has '_vm' => (
     ,required => 1
 );
 
-has 'farm' => (
+has '_farm' => (
     is => 'rw',
     ,isa => 'Object'
 );
@@ -110,6 +110,8 @@ before 'shutdown' => \&_allow_manage_args;
 
 before 'remove_base' => \&_can_remove_base;
 after 'remove_base' => \&_remove_base_db;
+
+after 'farm' => \&_store_farm;
 
 sub _preconditions{
     _allow_manage(@_);
@@ -323,6 +325,22 @@ sub _prepare_base_db {
     $sth->finish;
 
     $self->_select_domain_db();
+}
+
+sub _update_db {
+    my $self = shift;
+    my %args = @_;
+    my $query = '';
+    for (sort keys %args) {
+        $query .= ',' if $query;
+        $query .= "$_=?";
+    }
+    $query = "UPDATE domains set $query WHERE id=?";
+    warn $query;
+    my $sth = $$CONNECTOR->dbh->prepare($query);
+    my @values = map { $args{$_} } sort keys %args;
+    $sth->execute(@values, $self->id);
+    $sth->finish;
 }
 
 sub _insert_db {
@@ -595,6 +613,24 @@ sub clone {
         ,id_owner => $uid
         ,vm => $self->vm
     );
+}
+
+sub _store_farm {
+    my $self = shift;
+
+    my ($farm) = @_;
+    return if !$farm;
+
+    $self->_update_db(id_farm => $farm->id);
+}
+
+sub farm {
+    my $self = shift;
+    my ($farm) = @_;
+
+    $self->_farm($farm) if $farm;
+
+    return $self->_farm();
 }
 
 1;

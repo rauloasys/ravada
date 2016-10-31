@@ -30,20 +30,23 @@ sub test_domain_ip {
     ok($found == 1, "Domain ip ($ip) expected in 1 VM, found in $found VMs");
     
 }
+
 sub test_domain_farm {
     my ($vm_name, $domain, $farm) = @_;
 
     $domain->farm($farm);
-    ok($domain->farm,"Expecting domain ".$domain->name." belongs to a farm");
+    ok($domain->farm,"Expecting domain belongs to a farm");
     
     ok($domain->farm eq $farm,"Expecting farm for domain ='$farm' "
-                                .", got ".($domain->farm or '<UNDEF>'));
+                                .", got ".$domain->farm);
 
-    my $domain2 = $RVD_FRONT->search_domain($domain->name);
-    ok($domain2->farm,"Expecting domain ".$domain->name." belongs to a farm");
+    my $domain_f = $RVD_FRONT->search_domain($domain->name);
+
+    ok($domain_f->farm,"Expecting domain belongs to a farm");
     
-    ok($domain2->farm eq $farm,"Expecting farm for domain ='$farm' "
-                                .", got ".( $domain2->farm or '<UNDEF>'));
+    ok($domain_f->farm && $domain_f->farm eq $farm
+        ,"Expecting farm for domain ='$farm' "
+         .", got ".($domain_f->farm or '<UNDEF>'));
 
 }
 ###############################################################
@@ -57,12 +60,11 @@ for my $vm_name (qw(Void KVM)) {
     my $farm0 = {};
     bless $farm0,$class;
 
+    #TODO test new farm with name, or id, not both
     my $farm = $farm0->new ( name => new_domain_name() );
     
     my $vm = $RVD_BACK->search_vm($vm_name);
     $farm->add_node($vm);
-
-    warn Dumper($farm->nodes);
 
     my $domain = $RVD_BACK->create_domain( 
                vm => $vm
@@ -71,7 +73,11 @@ for my $vm_name (qw(Void KVM)) {
     );
     
     test_domain_farm($vm_name, $domain, $farm);
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> 6c2b3b462a3a84b9e3cd8f7e4992c34899a96f79
     $domain->start($USER);
     test_domain_ip($vm_name, $farm, $domain);
     
@@ -81,6 +87,10 @@ for my $vm_name (qw(Void KVM)) {
 
     ok($clone->farm,"Expecting clone belongs to a farm");
     ok($clone->farm && $clone->farm eq $domain->farm
+<<<<<<< HEAD
         ,"Expecting clone belongs to the base farm");
+=======
+            ,"Expecting clone belongs to the base farm");
+>>>>>>> 6c2b3b462a3a84b9e3cd8f7e4992c34899a96f79
 }
 done_testing();
