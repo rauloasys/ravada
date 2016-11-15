@@ -23,8 +23,8 @@ sub test_domain_ip {
     my ($ip) = $display =~ m{(\d+\.\d+\.\d+\.\d+)};
     
     my $found = 0;
-    for my $vm ( @{$farm->nodes}) {
-        $found++ if $vm->ip eq $ip;
+    for my $node ( @{$farm->nodes}) {
+        $found++ if $node->public_ip eq $ip;
     }
     
     ok($found == 1, "Domain ip ($ip) expected in 1 VM, found in $found VMs");
@@ -51,7 +51,7 @@ sub test_domain_farm {
 }
 ###############################################################
 
-for my $vm_name (qw(Void KVM)) {
+for my $vm_name (qw(Void )) {
 
     my $class = "Ravada::Farm::$vm_name";
 

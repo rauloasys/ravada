@@ -8,9 +8,22 @@ use Data::Dumper;
 
 use Moose::Role;
 
+use Ravada::Farm::Node;
+
 our $CONNECTOR;
 
-_init_connector();
+#################################################################
+
+
+requires 'sync_base';
+requires 'choose_node';
+
+#################################################################
+
+before 'sync_base' => \&_disable_all_nodes;
+
+###############################################################33
+
 
 has 'type' => (
     isa => 'Str'
@@ -34,6 +47,7 @@ has 'id' => (
 );
 
 ###############################################################
+_init_connector();
 
 sub _init_connector {
     $CONNECTOR = \$Ravada::CONNECTOR;
@@ -44,9 +58,9 @@ sub _init_connector {
 
 sub add_node {
     my $self = shift;
-    my $node = shift or confess "Missing node";
+    my $vm = shift or confess "Missing vm";
 
-    push  @{$self->nodes},($node);
+    push  @{$self->nodes},(Ravada::Farm::Node->new(vm => $vm));
 
 }
 
@@ -72,6 +86,10 @@ sub open {
 
 sub create {
     #TODO: insert int DB
+}
+
+sub _disable_all_nodes {
+    
 }
 
 1;

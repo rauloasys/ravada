@@ -7,4 +7,8 @@ use Moose;
 
 with 'Ravada::Farm';
 
+sub sync_base {}
+
+sub choose_node {}
+
 1;
