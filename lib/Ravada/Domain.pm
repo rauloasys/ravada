@@ -336,7 +336,6 @@ sub _update_db {
         $query .= "$_=?";
     }
     $query = "UPDATE domains set $query WHERE id=?";
-    warn $query;
     my $sth = $$CONNECTOR->dbh->prepare($query);
     my @values = map { $args{$_} } sort keys %args;
     $sth->execute(@values, $self->id);
