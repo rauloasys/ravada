@@ -15,12 +15,13 @@
             .controller("new_machine", newMachineCtrl)
             .controller("SupportForm", suppFormCtrl)
             .controller("machines", machinesCrtl)
+            .controller("bases", mainpageCrtl)
             .controller("messages", messagesCrtl)
 	        .controller("users", usersCrtl)
-           
 
 
- 
+
+
     function newMachineCtrl($scope, $http) {
 
         $http.get('/list_images.json').then(function(response) {
@@ -78,12 +79,18 @@
                 $scope.list_machines= response.data;
         });
 
+
+        $http.get('/list_bases.json').then(function(response) {
+                $scope.list_bases= response.data;
+        });
+
         request.get(function( res ) {
             $scope.res = res;
         });
 
         $http.get('/pingbackend.json').then(function(response) {
-            $scope.pingbackend = response.data;
+            $scope.pingbe_fail = !response.data;
+
         });
 
         $scope.shutdown = function(machineId){
@@ -116,7 +123,35 @@
             $http.get(toGet);
         };
 
+        $scope.removeb = function(machineId){
+            var toGet = '/machine/remove_b/'+machineId+'.json';
+            $http.get(toGet);
+        };
+
     };
+
+    // list machines
+        function mainpageCrtl($scope, $http, request, listMach) {
+
+            $url_list = "/list_bases.json";
+            if ( typeof $_anonymous !== 'undefined' && $_anonymous ) {
+                $url_list = "/list_bases_anonymous.json";
+            }
+            $http.get($url_list).then(function(response) {
+                    $scope.list_bases= response.data;
+            });
+
+            request.get(function( res ) {
+                $scope.res = res;
+            });
+
+            $http.get('/pingbackend.json').then(function(response) {
+                $scope.pingbe_fail = !response.data;
+
+            });
+
+        };
+
 
     function swListMach() {
 
@@ -184,7 +219,7 @@
         $scope.checkbox = [];
 
         //if it is checked make the user admin, otherwise remove admin
-        $scope.stateChanged = function(id,userid) { 
+        $scope.stateChanged = function(id,userid) {
            if($scope.checkbox[id]) { //if it is checked
                 $http.get('/users/make_admin/' + userid + '.json')
                 location.reload();
@@ -230,7 +265,9 @@
             var toGet = '/messages/read/'+messId+'.json';
             $http.get(toGet);
         };
-
+        $http.get('/pingbackend.json').then(function(response) {
+            $scope.pingbe = response.data;
+        });
     };
 
     function swMess() {
@@ -247,4 +284,3 @@
         });
 
     };
-

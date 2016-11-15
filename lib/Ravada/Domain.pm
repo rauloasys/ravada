@@ -10,9 +10,12 @@ use JSON::XS;
 use Moose::Role;
 use Moose::Util::TypeConstraints;
 use Sys::Statistics::Linux;
+use IPTables::ChainMgr;
 
 our $TIMEOUT_SHUTDOWN = 20;
 our $CONNECTOR;
+
+our $MIN_FREE_MEMORY = 1024*1024;
 
 _init_connector();
 
@@ -83,7 +86,7 @@ has '_farm' => (
 ##################################################################################3
 #
 # Method Modifiers
-# 
+#
 
 before 'display' => \&_allowed;
 
@@ -91,31 +94,39 @@ before 'remove' => \&_allow_remove;
  after 'remove' => \&_after_remove_domain;
 
 before 'prepare_base' => \&_allow_prepare_base;
- after 'prepare_base' => sub { 
-    my $self = shift; 
+ after 'prepare_base' => sub {
+    my $self = shift;
 
     my ($user) = @_;
 
-    $self->is_base(1); 
+    $self->is_base(1);
     if ($self->{_was_active} ) {
         $self->resume($user);
     }
     delete $self->{_was_active};
 };
 
-before 'start' => \&_preconditions;
+before 'start' => \&_start_preconditions;
+ after 'start' => \&_post_start;
+
 before 'pause' => \&_allow_manage;
 before 'resume' => \&_allow_manage;
 before 'shutdown' => \&_allow_manage_args;
+after 'shutdown' => \&_post_shutdown;
 
 before 'remove_base' => \&_can_remove_base;
 after 'remove_base' => \&_remove_base_db;
 
 after 'farm' => \&_store_farm;
 
-sub _preconditions{
-    _allow_manage(@_);
+sub _start_preconditions{
+    if (scalar @_ %2 ) {
+        _allow_manage_args(@_);
+    } else {
+        _allow_manage(@_);
+    }
     _check_free_memory();
+    _check_used_memory(@_);
 }
 
 sub _allow_manage_args {
@@ -153,8 +164,8 @@ sub _allow_remove {
 
 }
 
-sub _allow_prepare_base { 
-    my $self = shift; 
+sub _allow_prepare_base {
+    my $self = shift;
     my ($user) = @_;
 
     $self->_allowed($user);
@@ -171,7 +182,7 @@ sub _allow_prepare_base {
 sub _check_has_clones {
     my $self = shift;
     my @clones;
-    
+
     eval { @clones = $self->clones };
     die $@  if $@ && $@ !~ /No DB info/i;
     die "Domain ".$self->name." has ".scalar @clones." clones : ".Dumper(\@clones)
@@ -181,7 +192,29 @@ sub _check_has_clones {
 sub _check_free_memory{
     my $lxs  = Sys::Statistics::Linux->new( memstats => 1 );
     my $stat = $lxs->get;
-    die "No free memory" if ( $stat->memstats->{realfree} < 500000 );
+    die "No free memory" if ( $stat->memstats->{realfree} < $MIN_FREE_MEMORY );
+}
+
+sub _check_used_memory {
+    my $self = shift;
+    my $used_memory = 0;
+
+    my $lxs  = Sys::Statistics::Linux->new( memstats => 1 );
+    my $stat = $lxs->get;
+
+    # We get mem total less the used for the system
+    my $mem_total = $stat->{memstats}->{memtotal} - 1*1024*1024;
+
+    for my $domain ( $self->_vm->list_domains ) {
+        my $alive;
+        eval { $alive = 1 if $domain->is_active && !$domain->is_paused };
+        next if !$alive;
+
+        my $info = $domain->get_info;
+        $used_memory += $info->{memory};
+    }
+
+    die "ERROR: Out of free memory. Using $used_memory RAM of $mem_total available" if $used_memory>= $mem_total;
 }
 
 sub _check_disk_modified {
@@ -197,7 +230,7 @@ sub _check_disk_modified {
         $last_stat_base = $stat_base[9] if$stat_base[9] > $last_stat_base;
 #        warn $last_stat_base;
     }
-    
+
     my $files_updated = 0;
     for my $file ( $self->disk_device ) {
         my @stat = stat($file) or next;
@@ -279,7 +312,7 @@ sub __open {
 
 sub _select_domain_db {
     my $self = shift;
-    my %args = @_; 
+    my %args = @_;
 
     if (!keys %args) {
         my $id;
@@ -400,10 +433,10 @@ sub _remove_files_base {
 Returns true or  false if the domain is a prepared base
 =cut
 
-sub is_base { 
+sub is_base {
     my $self = shift;
     my $value = shift;
-    
+
     $self->_select_domain_db or return 0;
 
     if (defined $value ) {
@@ -417,7 +450,7 @@ sub is_base {
     }
     my $ret = $self->_data('is_base');
     $ret = 0 if $self->_data('is_base') =~ /n/i;
-    
+
     return $ret;
 };
 
@@ -486,6 +519,20 @@ sub clones {
     }
     return @clones;
 }
+
+=head2 has_clones
+Returns the number of clones from this virtual machine
+    my $has_clones = $domain->has_clones
+=cut
+
+sub has_clones {
+    my $self = shift;
+
+    _init_connector();
+
+    return scalar $self->clones;
+}
+
 
 =head2 list_files_base
 Returns a list of the filenames of this base-type domain
@@ -631,5 +678,79 @@ sub farm {
 
     return $self->_farm();
 }
+
+sub _post_shutdown {
+    my $self = shift;
+    my %args = @_;
+    my $user;
+
+    eval { $user = Ravada::Auth::SQL->search_by_id($self->id_owner) };
+    return if !$user;
+
+    if ($user->is_temporary) {
+        $self->remove($user);
+        my $req= $args{request};
+        $req->status(
+            "removing"
+            ,"Removing domain ".$self->name." after shutdown"
+            ." because user "
+            .$user->name." is temporary")
+                if $req;
+    }
+}
+
+sub _post_start {
+    my $self = shift;
+
+    return if scalar @_ % 2;
+    my %args = @_;
+
+    my $remote_ip = $args{remote_ip} or return;
+
+    my $owner = Ravada::Auth::SQL->search_by_id($self->id_owner);
+
+    my $display = $self->display($owner);
+    my ($local_ip, $local_port) = $display =~ m{\w+://(.*):(\d+)};
+
+	my %opts = (
+    	'use_ipv6' => 0,         # can set to 1 to force ip6tables usage
+	    'ipt_rules_file' => '',  # optional file path from
+	                             # which to read iptables rules
+	    'iptout'   => '/tmp/iptables.out',
+	    'ipterr'   => '/tmp/iptables.err',
+	    'debug'    => 0,
+	    'verbose'  => 0,
+
+	    ### advanced options
+	    'ipt_alarm' => 5,  ### max seconds to wait for iptables execution.
+	    'ipt_exec_style' => 'waitpid',  ### can be 'waitpid',
+	                                    ### 'system', or 'popen'.
+	    'ipt_exec_sleep' => 1, ### add in time delay between execution of
+	                           ### iptables commands (default is 0).
+	);
+
+	my $ipt_obj = IPTables::ChainMgr->new(%opts)
+    	or die "[*] Could not acquire IPTables::ChainMgr object";
+
+	my $rv = 0;
+	my $out_ar = [];
+	my $errs_ar = [];
+
+	#check_chain_exists
+	($rv, $out_ar, $errs_ar) = $ipt_obj->chain_exists('filter', 'RAVADA');
+    if ($rv) {
+    	print "$self chain exists.\n";
+	} else {
+		$ipt_obj->create_chain('filter', 'RAVADA');
+	}
+	# set the policy on the FORWARD table to DROP
+    $ipt_obj->set_chain_policy('filter', 'FORWARD', 'DROP');
+	# append rule at the end of the RAVADA chain in the filter table to
+	# allow all traffic from $local_ip to $remote_ip via port $local_port
+	($rv, $out_ar, $errs_ar) = $ipt_obj->append_ip_rule($local_ip,
+    $remote_ip, 'filter', 'RAVADA', 'ACCEPT',
+    {'protocol' => 'tcp', 's_port' => 0, 'd_port' => $local_port});
+}
+
 
 1;

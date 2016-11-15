@@ -35,6 +35,8 @@ our $CONNECTOR;# = \$Ravada::CONNECTOR;
 our $TIMEOUT = 5;
 our @VM_TYPES = ('KVM');
 
+our %VM;
+
 =head2 BUILD
 
 Internal constructor
@@ -61,7 +63,7 @@ Returns a list of the base domains as a listref
 
 sub list_bases {
     my $self = shift;
-    my $sth = $CONNECTOR->dbh->prepare("SELECT * FROM domains where is_base='y'");
+    my $sth = $CONNECTOR->dbh->prepare("SELECT * FROM domains where is_base=1");
     $sth->execute();
     
     my @bases = ();
@@ -268,10 +270,13 @@ sub open_vm {
     my $type = shift or confess "I need vm type";
     my $class = "Ravada::VM::$type";
 
+    return $VM{$type} if $VM{$type};
+
     my $proto = {};
     bless $proto,$class;
 
-    return $proto->new(readonly => 1);
+    $VM{$type} = $proto->new(readonly => 1);
+    return $VM{$type};
 }
 
 =head2 search_clone
@@ -409,23 +414,34 @@ Request to start a domain.
 
 =over
 
-=item $name : the domain name
+=item user => $user : a Ravada::Auth::SQL user
 
-=item $user : a Ravada::Auth::SQL user
+=item name => $name : the domain name
+
+=item remote_ip => $remote_ip: a Ravada::Auth::SQL user
 
 
 Returns an object: Ravada::Request.
 
-    my $req = $rvd_front->start_domain($name, $user);
+    my $req = $rvd_front->start_domain(
+               user => $user
+              ,name => 'mydomain'
+        , remote_ip => '192.168.1.1');
 
 =cut
 
 sub start_domain {
     my $self = shift;
-    my $name = shift;
-    my $user = shift;
+    confess "ERROR: Must call start_domain with user=>\$user, name => \$name, remote_ip => \$ip"
+        if scalar @_ % 2;
 
-    return Ravada::Request->start_domain(name => $name, uid => $user->id);
+    my %args = @_;
+
+    # TODO check for user argument
+    $args{uid} = $args{user}->id    if $args{user};
+    delete $args{user};
+
+    return Ravada::Request->start_domain( %args );
 }
 
 =head2 list_bases_anonymous

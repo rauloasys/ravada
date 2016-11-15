@@ -41,6 +41,9 @@ our $CONFIG = {};
 our $DEBUG;
 our $CAN_FORK = 1;
 our $CAN_LXC = 0;
+our $LIMIT_PROCESS = 2;
+
+our %FAT_COMMAND =  map { $_ => 1 } qw(start create prepare_base remove);
 
 has 'vm' => (
           is => 'ro'
@@ -74,7 +77,7 @@ sub BUILD {
     }
 
     if ( $self->connector ) {
-        $CONNECTOR = $self->connector 
+        $CONNECTOR = $self->connector
     } else {
         $CONNECTOR = $self->_connect_dbh();
         $self->connector($CONNECTOR);
@@ -101,7 +104,7 @@ Returns the default display IP read from the config file
 
 sub display_ip {
     my $ip = $CONFIG->{display_ip};
-    
+
     return $ip if $ip;
 }
 
@@ -112,6 +115,9 @@ sub _init_config {
     confess "Deprecated connector" if $connector;
 
     $CONFIG = YAML::LoadFile($file);
+
+    $LIMIT_PROCESS = $CONFIG->{limit_process} 
+        if $CONFIG->{limit_process} && $CONFIG->{limit_process}>1;
 #    $CONNECTOR = ( $connector or _connect_dbh());
 }
 
@@ -207,13 +213,13 @@ sub _check_vms {
 
 Creates a new domain based on an ISO image or another domain.
 
-  my $domain = $ravada->create_domain( 
+  my $domain = $ravada->create_domain(
          name => $name
     , id_iso => 1
   );
 
 
-  my $domain = $ravada->create_domain( 
+  my $domain = $ravada->create_domain(
          name => $name
     , id_base => 3
   );
@@ -380,11 +386,11 @@ sub list_domains_data {
 #         eval { $domain->id };
 #         warn $@ if $@;
 #         next if $@;
-#         push @domains, {                id => $domain->id 
+#         push @domains, {                id => $domain->id
 #                                     , name => $domain->name
 #                                   ,is_base => $domain->is_base
 #                                 ,is_active => $domain->is_active
-                               
+
 #                            }
 #     }
 #     return \@domains;
@@ -553,11 +559,11 @@ sub process_requests {
         if ($err && $err =~ /libvirt error code: 38/) {
             if ( $n_retry < 3) {
                 warn $req->id." ".$req->command." to retry" if $DEBUG;
-                $req->status("retry ".++$n_retry)   
+                $req->status("retry ".++$n_retry)
             }
         }
         warn "req ".$req->id." , command: ".$req->command." , status: ".$req->status()
-            ." , error: '".($req->error or 'NONE')."'" 
+            ." , error: '".($req->error or 'NONE')."'"
                 if $DEBUG || $debug;
 
     }
@@ -578,7 +584,7 @@ Returnsa list ofthe types of Virtual Machines available on this system
 
 sub list_vm_types {
     my $self = shift;
-    
+
     my %type;
     for my $vm (@{$self->vm}) {
             my ($name) = ref($vm) =~ /.*::(.*)/;
@@ -598,7 +604,7 @@ sub _execute {
             if !$sub;
 
     if ($dont_fork || !$CAN_FORK ) {
-        
+
         eval { $sub->($self,$request) };
         my $err = ($@ or '');
         $request->error($err);
@@ -606,11 +612,12 @@ sub _execute {
         return $err;
     }
 
+    $self->_wait_children($request) if $FAT_COMMAND{$request->command};
     my $pid = fork();
     die "I can't fork" if !defined $pid;
     if ($pid == 0) {
         $request->status("forked $$");
-        eval { 
+        eval {
             $sub->($self,$request);
         };
         my $err = ( $@ or '');
@@ -683,6 +690,26 @@ sub _cmd_create{
 
     $request->status('done',$msg);
 
+}
+
+sub _wait_children {
+    my $self = shift;
+    my $req = shift or confess "Missing request";
+
+    my $try = 0;
+    for (;;) {
+        my $n_pids = scalar keys %{$self->{pids}};
+        my $msg = $req->id." ".$req->command." waiting for processes to finish $n_pids of $LIMIT_PROCESS running";
+        warn $msg if $DEBUG;
+
+        return if $n_pids <= $LIMIT_PROCESS;
+
+        $self->_wait_pids_nohang();
+        sleep 1;
+        $req->error($msg)
+            if !$try++;
+
+    }
 }
 
 sub _wait_pids_nohang {
@@ -797,7 +824,7 @@ sub _cmd_start {
     my $uid = $request->args('uid');
     my $user = Ravada::Auth::SQL->search_by_id($uid);
 
-    $domain->start($user);
+    $domain->start(user => $user, remote_ip => $request->args('remote_ip'));
     my $msg = 'Domain '
             ."<a href=\"/machine/view/".$domain->id.".html\">"
             .$request->args('name')."</a>"
@@ -860,7 +887,8 @@ sub _cmd_shutdown {
 
     my $user = Ravada::Auth::SQL->search_by_id( $uid);
 
-    $domain->shutdown(timeout => $timeout, name => $name, user => $user);
+    $domain->shutdown(timeout => $timeout, name => $name, user => $user
+                    , request => $request);
 
 }
 
@@ -945,6 +973,37 @@ sub search_vm {
         return $vm if ref($vm) eq $class;
     }
     return;
+}
+
+=head2 import_domain
+
+Imports a domain in Ravada
+
+    my $domain = $ravada->import_domain(
+                            vm => 'KVM'
+                            ,name => $name
+                            ,user => $user_name
+    );
+
+=cut
+
+sub import_domain {
+    my $self = shift;
+    my %args = @_;
+
+    my $vm_name = $args{vm} or die "ERROR: mandatory argument vm required";
+    my $name = $args{name} or die "ERROR: mandatory argument domain name required";
+    my $user_name = $args{user} or die "ERROR: mandatory argument user required";
+
+    my $vm = $self->search_vm($vm_name) or die "ERROR: unknown VM '$vm_name'";
+    my $user = Ravada::Auth::SQL->new(name => $user_name);
+    die "ERROR: unknown user '$user_name'" if !$user || !$user->id;
+    
+    my $domain;
+    eval { $domain = $self->search_domain($name) };
+    die "ERROR: Domain '$name' already in RVD"  if $domain;
+
+    return $vm->import_domain($name, $user);
 }
 
 =head1 AUTHOR
