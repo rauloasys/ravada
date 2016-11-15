@@ -15,6 +15,7 @@ my $RVD_FRONT = rvd_front( $test->connector , 't/etc/ravada.conf');
 my $USER = create_user('foo', 'bar');
 
 use_ok('Ravada::Farm');
+use_ok('Ravada::Farm::Node');
 
 sub test_domain_ip {
     my ($vm_name, $farm, $domain) = @_;
@@ -49,6 +50,44 @@ sub test_domain_farm {
          .", got ".($domain_f->farm or '<UNDEF>'));
 
 }
+
+sub test_node_ip {
+    my $vm_name = shift;
+
+    my $vm = $RVD_BACK->search_vm($vm_name);
+
+    my $class = "Ravada::Farm::$vm_name";
+    use_ok($class,"Testing class $class") or return;
+    my $farm0 = {};
+    bless $farm0,$class;
+
+    my ($public_ip,$private_ip) = qw( 1.1.1.1 2.2.2.2);
+    my $node = Ravada::Farm::Node->new(
+        vm => $vm
+        ,public_ip => $public_ip
+    );
+    ok($node,"New node") or return;
+    is($node->public_ip, $public_ip,"public ip");
+    is($node->private_ip, $public_ip,"private ip is public ip");
+
+    $node = Ravada::Farm::Node->new(
+        vm => $vm
+        ,private_ip => $private_ip
+    );
+    ok($node,"New node");
+    is($node->public_ip, $private_ip,"public ip is private ip");
+    is($node->private_ip, $private_ip,"private ip");
+
+    $node = Ravada::Farm::Node->new(
+        vm => $vm
+        ,private_ip => $private_ip
+        ,public_ip => $public_ip
+    );
+    is($node->private_ip, $private_ip,"private ip");
+    is($node->public_ip, $public_ip,"public ip");
+
+}
+
 ###############################################################
 
 for my $vm_name (qw(Void )) {
@@ -59,6 +98,8 @@ for my $vm_name (qw(Void )) {
 
     my $farm0 = {};
     bless $farm0,$class;
+
+    test_node_ip($vm_name);
 
     #TODO test new farm with name, or id, not both
     my $farm = $farm0->new ( name => new_domain_name() );

@@ -49,6 +49,15 @@ has 'snmp_community' => (
 
 #####################################################
 
+sub BUILD {
+    my $self = shift;
+    $self->public_ip(($self->private_ip or $self->vm->ip))
+        if !defined $self->public_ip;
+    $self->private_ip(($self->public_ip or $self->vm->ip))
+        if !defined $self->private_ip;
+}
+
+#####################################################
 sub is_alive {
 # ping
 }
