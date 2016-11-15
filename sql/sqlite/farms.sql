@@ -1,7 +1,6 @@
-create table farms (
-  `id` integer primary key AUTOINCREMENT,
-  `name` char(40),
-  `description` char(140),
-  `type` char(20),
-  UNIQUE (`name`)
+CREATE TABLE `farms` (
+    `id` integer NOT NULL PRIMARY KEY AUTOINCREMENT 
+,    type char(32) NOT NULL
+,    name char(32) NOT NULL
+,    UNIQUE (name)
 );

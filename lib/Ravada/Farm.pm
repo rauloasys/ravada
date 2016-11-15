@@ -27,7 +27,7 @@ before 'sync_base' => \&_disable_all_nodes;
 
 has 'type' => (
     isa => 'Str'
-    ,is => 'ro'
+    ,is => 'rw'
 );
 
 has 'name' => (
@@ -43,7 +43,7 @@ has 'nodes' => (
 
 has 'id' => (
     isa => 'Int'
-    ,is => 'ro'
+    ,is => 'rw'
 );
 
 ###############################################################
@@ -71,21 +71,41 @@ sub BUILD {
     my $id = $args->{id};
     my $name = $args->{name};
 
+    my $type = ref($self);
+    $type =~ s/.*:://;
+    $self->type($type);
+
     confess "ERROR: supply either id or name, not both ".Dumper(\@_)
         if defined $id && defined $name;
 
-    return $self->open($id)     if defined $id;
-    return $self->create(%$args) if $name;
+    return $self->_open($id)     if defined $id;
+    return $self->_create(%$args) if $name;
     
     confess "ERROR: supply at least id or name ".Dumper(\@_);
 }
 
-sub open {
+sub _open {
     #TODO: load from DB
 }
 
-sub create {
-    #TODO: insert int DB
+sub _create {
+    my $self = shift;
+
+    my $sth = $$CONNECTOR->dbh->prepare(
+        "INSERT INTO farms "
+        ."( name, type ) "
+        ." VALUES(?,?)"
+    );
+    $sth->execute($self->name, $self->type);
+    $sth->finish;
+
+    $sth = $$CONNECTOR->dbh->prepare(
+        "SELECT id FROM farms"
+        ." WHERE name=?"
+    );
+    $sth->execute($self->name);
+    $self->id($sth->fetchrow);
+    $sth->finish;
 }
 
 sub _disable_all_nodes {

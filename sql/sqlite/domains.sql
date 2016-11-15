@@ -3,12 +3,9 @@ CREATE TABLE `domains` (
 ,  `id_base` integer
 ,  `name` char(80) NOT NULL
 ,  `created` integer NOT NULL DEFAULT '0'
-,  `error` varchar(200) DEFAULT NULL
-,  `uri` varchar(250) DEFAULT NULL
 ,  `is_base` integer NOT NULL DEFAULT '0'
 ,  `file_base_img` varchar(255) DEFAULT NULL
 ,  `file_screenshot` varchar(255) DEFAULT NULL
-,  `port` integer
 ,  `id_owner` integer
 ,  `vm` char(120) NOT NULL
 ,  `id_farm` integer

@@ -43,7 +43,7 @@ sub test_domain_farm {
 
     my $domain_f = $RVD_FRONT->search_domain($domain->name);
 
-    ok($domain_f->farm,"Expecting domain belongs to a farm");
+    ok($domain_f->farm,"Expecting domain belongs to a farm") or exit;
     
     ok($domain_f->farm && $domain_f->farm eq $farm
         ,"Expecting farm for domain ='$farm' "
@@ -103,6 +103,8 @@ for my $vm_name (qw(Void )) {
 
     #TODO test new farm with name, or id, not both
     my $farm = $farm0->new ( name => new_domain_name() );
+
+    ok($farm->id,"Expecting farm id") or exit;
     
     my $vm = $RVD_BACK->search_vm($vm_name);
     $farm->add_node($vm);

@@ -282,6 +282,16 @@ sub id {
 
 ##################################################################################
 
+sub BUILD {
+    my $self = shift;
+
+    my $id_farm = $self->_data('id_farm');
+
+    warn $id_farm;
+    $self->farm(Ravada::Farm->new( id => $id_farm))
+        if $id_farm;
+}
+
 sub _data {
     my $self = shift;
     my $field = shift or confess "Missing field name";
@@ -632,6 +642,7 @@ Clones a domain
 =over
 
 =item user => $user : The user that owns the clone
+ok($node->private_ip, $private_ip,"private ip");
 
 =item name => $name : Name of the new clone
 
@@ -652,7 +663,6 @@ sub clone {
 
     my $id_base = $self->id;
 
-
     return $self->_vm->create_domain(
         name => $name
         ,id_base => $id_base
@@ -664,11 +674,21 @@ sub clone {
 sub _store_farm {
     my $self = shift;
 
+    warn Dumper(\@_);
     my ($farm) = @_;
     return if !$farm;
 
+    warn "farm id : ".$farm->id;
+
     $self->_update_db(id_farm => $farm->id);
 }
+
+=head2 farm
+
+Adds the domain to a farm.
+Returns the farm the domain belongs to if any.
+
+=cut
 
 sub farm {
     my $self = shift;
