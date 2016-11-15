@@ -285,9 +285,10 @@ sub id {
 sub BUILD {
     my $self = shift;
 
-    my $id_farm = $self->_data('id_farm');
+    my $id_farm;
 
-    warn $id_farm;
+    eval { $id_farm = $self->_data('id_farm') };
+
     $self->farm(Ravada::Farm->new( id => $id_farm))
         if $id_farm;
 }
