@@ -12,6 +12,8 @@ use Moose::Util::TypeConstraints;
 use Sys::Statistics::Linux;
 use IPTables::ChainMgr;
 
+use Ravada::Farm;
+
 our $TIMEOUT_SHUTDOWN = 20;
 our $CONNECTOR;
 
@@ -43,6 +45,7 @@ requires 'disk_device';
 requires 'get_info';
 requires 'set_memory';
 requires 'set_max_mem';
+
 ##########################################################
 
 has 'domain' => (
@@ -281,17 +284,6 @@ sub id {
 
 
 ##################################################################################
-
-sub BUILD {
-    my $self = shift;
-
-    my $id_farm;
-
-    eval { $id_farm = $self->_data('id_farm') };
-
-    $self->farm(Ravada::Farm->new( id => $id_farm))
-        if $id_farm;
-}
 
 sub _data {
     my $self = shift;
@@ -675,11 +667,8 @@ sub clone {
 sub _store_farm {
     my $self = shift;
 
-    warn Dumper(\@_);
     my ($farm) = @_;
     return if !$farm;
-
-    warn "farm id : ".$farm->id;
 
     $self->_update_db(id_farm => $farm->id);
 }
@@ -696,8 +685,20 @@ sub farm {
     my ($farm) = @_;
 
     $self->_farm($farm) if $farm;
+    return $self->_farm()   if $self->_farm();
 
-    return $self->_farm();
+    my $id_farm;
+    eval { $id_farm = $self->_data('id_farm') };
+    return if !$id_farm;
+
+    my ($class) = ref($self) =~ /.*::(.*)/;
+    $class = "Ravada::Farm::$class";
+    my $farm0 = {};
+    bless $farm0,$class;
+    $farm = $farm0->new( id => $id_farm);
+    $self->_farm($farm);
+
+    return $farm;
 }
 
 sub _post_shutdown {

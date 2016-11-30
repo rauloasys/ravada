@@ -43,9 +43,9 @@ sub test_domain_farm {
 
     my $domain_f = $RVD_FRONT->search_domain($domain->name);
 
-    ok($domain_f->farm,"Expecting domain belongs to a farm") or exit;
+    ok($domain_f->farm,"Expecting domain belongs to a farm ") or return;
     
-    ok($domain_f->farm && $domain_f->farm eq $farm
+    ok($domain_f->farm && $domain_f->farm->id eq $farm->id
         ,"Expecting farm for domain ='$farm' "
          .", got ".($domain_f->farm or '<UNDEF>'));
 
@@ -125,7 +125,6 @@ for my $vm_name (qw(Void )) {
     test_domain_ip($vm_name, $farm, $clone);
 
     ok($clone->farm,"Expecting clone belongs to a farm");
-    ok($clone->farm && $clone->farm eq $domain->farm
-        ,"Expecting clone belongs to the base farm");
+    is($clone->farm && $clone->farm->id, $domain->farm->id);
 }
 done_testing();

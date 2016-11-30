@@ -21,8 +21,8 @@ has 'name' => (
 );
 
 has 'vm' => (
-    isa => 'Ravada::VM'
-    ,is => 'ro'
+#    isa => 'Ravada::VM'
+    is => 'ro'
     ,required => 1
 );
 
