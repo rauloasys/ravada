@@ -4,8 +4,7 @@ Makefile
 Makefile.old
 blib
 pm_to_blib
-t/db
-db
+t/.db
 t/etc/ravada_ldap.conf
 t/etc/farm_20_run.t.conf
 hypnotoad.pid
