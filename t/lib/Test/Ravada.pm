@@ -5,6 +5,7 @@ use warnings;
 use  Carp qw(carp confess);
 use  Data::Dumper;
 use  Test::More;
+use Time::HiRes qw(usleep);
 
 use Ravada;
 use Ravada::Auth::SQL;
@@ -15,13 +16,81 @@ require Exporter;
 
 @ISA = qw(Exporter);
 
-@EXPORT = qw(base_domain_name new_domain_name rvd_back remove_old_disks remove_old_domains create_user user_admin wait_request rvd_front init);
+@EXPORT = qw(base_domain_name new_domain_name rvd_back remove_old_disks remove_old_domains create_user user_admin wait_request rvd_front init send_line);
 
 our $DEFAULT_CONFIG = "t/etc/ravada.conf";
 our ($CONNECTOR, $CONFIG);
 
 our $CONT = 0;
 our $USER_ADMIN;
+
+#http://libvirt.org/git/?p=libvirt.git;a=blob_plain;f=src/util/keymaps.csv
+
+our %KEY = (
+     ' ' => 57
+    ,'.' => 52
+    ,"'" => 40
+    ,"`" => 41
+    ,'/' => 53
+    ,'[' => 26
+    ,']' => 27
+    ,';' => 39
+    ,'-' => 12
+    ,'>' => [54,86]
+    ,'0' =>  11
+    ,'1' =>  2
+    ,'2' =>  3
+    ,'3' =>  4
+    ,'a' => 30
+    ,'b' => 48
+    ,'c' => 46
+    ,'d' => 32
+    ,'e' => 18
+    ,'f' => 33
+    ,'h' => 35
+    ,'i' => 23
+    ,'k' => 37
+    ,'l' => 38
+    ,'m' => 50 
+    ,'n' => 49
+    ,'r' => 19
+    ,'o' => 24
+    ,'p' => 25
+    ,'r' => 19
+    ,'s' => 31
+    ,'t' => 20
+    ,'u' => 22
+    ,'v' => 47
+    ,'w' => 17
+    ,'x' => 45  
+    ,'$' => [54,5]
+);
+
+sub key_code {
+    my $name = shift;
+    confess "Unknown KEY for '$name'" if !$KEY{$name};
+    return $KEY{$name};
+}
+
+sub send_line { 
+    my ($domain) = shift;
+
+    for my $string ( @_ ) {
+        diag("sending $string");
+
+        for my $key ( split //,$string) {
+            my $code = key_code($key);
+            $code = [$code] if !ref($code);
+            $domain->domain->send_key( 
+                Sys::Virt::Domain::KEYCODE_SET_RFB 
+                ,50,$code);
+        }
+        $domain->domain->send_key( 
+                Sys::Virt::Domain::KEYCODE_SET_RFB 
+                ,100,[28]);
+        usleep(500);
+    }
+}
 
 sub user_admin {
     return $USER_ADMIN;
@@ -123,12 +192,12 @@ sub _remove_old_domains_kvm {
     my $base_name = base_domain_name();
     for my $domain ( $vm->vm->list_all_domains ) {
         next if $domain->get_name !~ /^$base_name/;
+        eval { $domain->resume() };
         eval { 
-            $domain->shutdown();
+            $domain->shutdown() if $domain->is_active;
             sleep 1; 
             $domain->destroy() if $domain->is_active;
-        }
-            if $domain->is_active;
+        };
         warn "WARNING: error $@ trying to shutdown ".$domain->get_name if $@;
         eval { $domain->undefine };
         warn $@ if $@;
