@@ -12,19 +12,19 @@ my $test = Test::SQL::Data->new(config => 't/etc/sql.conf');
 
 my $ravada = Ravada->new(connector => $test->connector);
 
-Ravada::Auth::SQL::add_user(name => 'root', password => 'root', is_admin => 1);
+Ravada::Auth::SQL::add_user(name => 'enoch', password => 'root', is_admin => 1);
 
 Ravada::Auth::LDAP(0);
 
 {
     my $user_fail;
-    eval { $user_fail = Ravada::Auth::SQL->new(name => 'root',password => 'fail')};
+    eval { $user_fail = Ravada::Auth::SQL->new(name => 'enoch',password => 'fail')};
     
     ok(!$user_fail,"User should fail, got ".Dumper($user_fail));
 }
     
 {
-    my $user = Ravada::Auth::SQL->new(name => 'root',password => 'root');
+    my $user = Ravada::Auth::SQL->new(name => 'enoch',password => 'root');
     
     ok($user);
     ok($user->id, "User ".$user->name." has no id");
@@ -36,7 +36,7 @@ Ravada::Auth::LDAP(0);
     ok($user2->name eq $user->name,"Expecting user name =".$user->name." , got ".$user2->name);
     ok($user2->is_admin,"User ".$user2->name." should be admin ".Dumper($user2->{_data}));
 
-    my $user3 = Ravada::Auth::login('root','root');
+    my $user3 = Ravada::Auth::login('enoch','root');
     ok($user3,"No user returned from Ravada::Auth::login");
     ok(ref $user && ref($user3) eq 'Ravada::Auth::SQL');
     ok($user3->is_admin,"User ".$user3->name." should be admin ".Dumper($user3->{_data}));

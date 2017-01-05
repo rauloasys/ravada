@@ -74,6 +74,7 @@ Adds a new user in the SQL database. Returns nothing.
                  name => $user
            , password => $pass
            , is_admin => 0
+        , is_disabled => 0
        , is_temporary => 0
     );
 
@@ -88,21 +89,24 @@ sub add_user {
     my $password = $args{password};
     my $is_admin = ($args{is_admin} or 0);
     my $is_temporary= ($args{is_temporary} or 0);
+    my $is_disabled = ($args{is_disabled} or $is_temporary);
 
-    delete @args{'name','password','is_admin','is_temporary'};
+    delete @args{'name','password','is_admin','is_temporary','is_disabled'};
 
     confess "WARNING: Unknown arguments ".Dumper(\%args)
         if keys %args;
 
     my $sth = $$CON->dbh->prepare(
-            "INSERT INTO users (name,password,is_admin,is_temporary) VALUES(?,?,?,?)");
+      "INSERT INTO users (name,password,is_admin,is_temporary,is_disabled)"
+      ." VALUES(?,?,?,?,?)");
 
     if ($password) {
         $password = sha1_hex($password);
     } else {
         $password = '*LK* no pss';
     }
-    $sth->execute($name,$password,$is_admin,$is_temporary);
+    eval { $sth->execute($name,$password,$is_admin,$is_temporary, $is_disabled) };
+    confess $@ if $@;
     $sth->finish;
 }
 
@@ -178,6 +182,7 @@ sub login {
 
     if ($found) {
         lock_hash %$found;
+        return if $found->{is_disabled};
         $self->{_data} = $found if ref $self && $found;
     }
 

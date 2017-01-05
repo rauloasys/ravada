@@ -45,6 +45,9 @@ our $CAN_FORK = 1;
 our $CAN_LXC = 0;
 our $LIMIT_PROCESS = 2;
 
+# root user to send orders to the domains
+our $USER_ROOT;
+
 our %FAT_COMMAND =  map { $_ => 1 } qw(start create prepare_base remove);
 
 has 'vm' => (
@@ -85,6 +88,21 @@ sub BUILD {
         $self->connector($CONNECTOR);
     }
     Ravada::Auth::init($CONFIG);
+    $USER_ROOT = _init_user_root() if !$USER_ROOT;
+}
+
+sub _init_user_root {
+    my $user;
+    eval { $user = Ravada::Auth::SQL->new(name => 'root') };
+    return $user if $user && $user->id;
+
+    Ravada::Auth::SQL::add_user(
+                     name => 'root', 
+               , is_admin => 1
+            , is_disabled => 1);
+
+
+    return Ravada::Auth::SQL->new(name => 'root');
 }
 
 sub _connect_dbh {
@@ -1085,6 +1103,29 @@ sub import_domain {
     die "ERROR: Domain '$name' already in RVD"  if $domain;
 
     return $vm->import_domain($name, $user);
+}
+
+=head2 pause_inactive_domains
+
+Checks if any domain is running but inactive and pauses it.
+
+Argument: seconds of inactivity
+
+=cut
+
+sub pause_inactive_domains {
+    my $self = shift;
+    my $seconds = ( shift or 60);
+    for my $vm (@{$self->vm}) {
+        for my $domain ($vm->list_domains) {
+            next if !$domain->is_active || $domain->is_paused;
+            warn "Ravada.pm ".$domain->name." :".$domain->disk_load();
+            next if $domain->recent_disk_load($seconds) >= 0.00001;
+            warn "\tpausing\n";
+            $domain->pause($USER_ROOT)
+        }
+    }
+
 }
 
 =head2 version

@@ -32,6 +32,12 @@ has '_vm' => (
     ,required => 0
 );
 
+has '_disk_load' => (
+    is => 'rw'
+    ,isa => 'ArrayRef'
+    ,default => sub { [] }
+);
+
 ##################################################
 #
 our $TIMEOUT_SHUTDOWN = 60;
@@ -810,4 +816,105 @@ sub rename_volumes {
 
 =cut
 
+=head2 cpu_load
+
+Returns the CPU load of the virtual machine
+
+=cut
+
+sub cpu_load {
+    my $self = shift;
+
+    my $key = 'vcpu_time';
+    my @cpu = $self->domain->get_cpu_stats(0,1);
+
+    my $time = time;
+    my $vcpu = 0;
+
+    for my $n ( 0 .. $#cpu-1) {
+        $vcpu += $cpu[$n]->{$key} if $cpu[$n]->{$key};
+    }
+
+    my ($vcpu_old, $time_old) = $self->_last_cpu_time();
+
+    $self->_last_cpu_time($vcpu,$time);
+    my $delta_time = 1/(($time-$time_old)*1000000000);
+
+    warn $self->name." $time_old - $delta_time\n";
+    return 0 if !$time_old || !$delta_time;
+
+    my $delta = $vcpu- $vcpu_old;
+    $delta = 100 * $delta * $delta_time;
+
+    warn "\t$vcpu / delta = $delta\n";
+    return $delta;
+}
+
+sub disk_load {
+    my $self = shift;
+
+    my $reqs = 0;
+    my $time = time;
+
+    for my $vol ($self->list_volumes) {
+        my $info = $self->domain->block_stats($vol);
+        for (sort keys %$info) {
+            next if !/req/;
+            $reqs += $info->{$_};
+        }
+    }
+    my ($reqs_old, $time_old) = $self->_last_reqs_time();
+
+    my $load = ($reqs-$reqs_old)/($time - $time_old);
+    $self->_last_reqs_time($reqs,$time)     if $time > $time_old ;
+    $self->_store_disk_load($load, $time)   if $time > $time_old ;
+
+    return $load;
+
+}
+
+sub _last_reqs_time {
+    my $self = shift;
+
+    if (scalar @_) {
+        $self->{_last_reqs_time} = [ @_ ];
+        return @_;
+    }
+    return (0,0) if !$self->{_last_reqs_time};
+    return @{$self->{_last_reqs_time}};
+}
+
+sub _store_disk_load {
+    my $self = shift;
+    push @{$self->_disk_load},[@_];
+}
+
+sub recent_disk_load {
+    my $self = shift;
+    my $seconds = (shift or 60);
+
+    my ($count,$total_load) = (0,0);
+    warn "recent disk load ".$self->name."\n";
+    for (reverse @{$self->_disk_load}) {
+        my ($load, $time) = ($_->[0],$_->[1]);
+        last if time-$time>$seconds;   
+        warn ''.localtime($time)." $load\n";
+        $count++;
+        $total_load += $load;
+        
+    }
+    return 1 if $count < 2;
+    my $recent_load = $total_load/$count;
+    warn "$recent_load\n\n";
+    return $recent_load;
+}
+
+sub _last_cpu_time {
+    my $self = shift;
+
+    $self->{_last_cpu_time} = [ @_ ] if scalar @_;
+
+    return (0,0) if !$self->{_last_cpu_time};
+    return @{$self->{_last_cpu_time}};
+}
 1;

@@ -5,6 +5,7 @@ CREATE TABLE `users` (
   `change_password` integer DEFAULT 1,
   `is_admin` integer DEFAULT 0,
   `is_temporary` integer DEFAULT 0,
+  `is_disabled` integer DEFAULT 0,
   PRIMARY KEY (`id`),
   UNIQUE KEY `name` (`name`)
 );

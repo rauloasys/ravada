@@ -5,7 +5,7 @@ use Data::Dumper;
 use Test::More;
 use Test::SQL::Data;
 
-my $test = Test::SQL::Data->new();
+my $test = Test::SQL::Data->new(config => 't/etc/sql.conf');
 
 my $BACKEND = 'KVM';
 my $CLASS= "Ravada::VM::$BACKEND";
@@ -34,7 +34,7 @@ sub test_search_vm {
 #######################################################
 
 my $RAVADA;
-eval { $RAVADA = Ravada->new() };
+eval { $RAVADA = Ravada->new(connector => $test->connector) };
 
 my $err = ($@ or '');
 my $vm;
