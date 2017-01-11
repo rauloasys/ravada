@@ -118,22 +118,19 @@ sub test_compare_cpu_load {
 sub test_compare_disk_load {
     my ($vm_name, $domain1, $domain2) = @_;
     my $rvd = rvd_back();
+    my $seconds;
     for ( 1 .. 60 ) {
         my $msg = '';
-        $rvd->pause_inactive_domains(10);
-#        for ($domain1, $domain2) {
-#            my $msg = $_->name." ".$_->disk_load." => ".$_->recent_disk_load(10)." ";
-#            diag("$msg\n");
-#        }
+        $rvd->pause_inactive_domains($seconds);
         last if $domain2->is_paused;
         sleep 1;
     }
     ok($domain1->is_active,"Domain 1 ".$domain1->name." should be active");
-    ok(!$domain1->is_paused,"Domain 1 ".$domain1->name
-        ." should not be paused");
-    ok($domain2->is_active,"Domain 2 ".$domain2->name." should be active");
-    ok($domain2->is_paused,"Domain 2 ".$domain2->name
+    ok($domain1->is_paused,"Domain 1 ".$domain1->name
         ." should be paused");
+    ok($domain2->is_active,"Domain 2 ".$domain2->name." should be active");
+    ok(!$domain2->is_paused,"Domain 2 ".$domain2->name
+        ." should not be paused");
 
 }
 
@@ -163,10 +160,9 @@ for my $vm_name ('KVM') {
         my $domain2 = test_create_domain($vm_name) or next;
 
 #        test_compare_cpu_load($vm_name, $domain1,$domain2);
-        test_format_disk($vm_name, $domain1) 
-            if !$DOMAIN_ALREADY_THERE{$domain1->name};
-#        test_format_disk($vm_name, $domain2);
-        send_use_disk($vm_name, $domain1);
+        test_format_disk($vm_name, $domain1);
+        test_format_disk($vm_name, $domain2);
+        send_use_disk($vm_name, $domain2);
 #
         test_compare_disk_load($vm_name, $domain1,$domain2);
     }

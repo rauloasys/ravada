@@ -903,19 +903,18 @@ sub recent_disk_load {
     my $self = shift;
     my $seconds = (shift or 60);
 
+    $self->disk_load();
     my ($count,$total_load) = (0,0);
-    warn "recent disk load ".$self->name." ($seconds)\n";
     for (reverse @{$self->_disk_load}) {
         my ($load, $time) = ($_->[0],$_->[1]);
         last if time-$time>$seconds;   
-        warn "\t".localtime($time)." $load\n";
         $count++;
         $total_load += $load;
         
     }
-    return 1 if $count < 2;
+#    warn Dumper($self->_disk_load);
+    return 99 if $count < 2;
     my $recent_load = $total_load/$count;
-    warn "$recent_load\n\n";
     return $recent_load;
 }
 
