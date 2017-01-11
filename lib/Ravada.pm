@@ -1117,11 +1117,13 @@ sub pause_inactive_domains {
     my $self = shift;
     my $seconds = ( shift or 60);
     for my $vm (@{$self->vm}) {
+        $vm->cache_enabled(1)   if !$vm->cache_enabled();
         for my $domain ($vm->list_domains) {
             next if !$domain->is_active || $domain->is_paused;
-            warn "Ravada.pm ".$domain->name." :".$domain->disk_load();
+            warn "Ravada.pm VM=$vm ".$domain->name." :"
+                .$domain->disk_load()."\n";
             next if $domain->recent_disk_load($seconds) >= 0.00001;
-            warn "\tpausing\n";
+            warn "\tpausing ".$domain->name."\n";
             $domain->pause($USER_ROOT)
         }
     }

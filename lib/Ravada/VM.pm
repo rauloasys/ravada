@@ -54,6 +54,13 @@ has 'readonly' => (
     , is => 'ro'
     ,default => 0
 );
+
+has 'cache_enabled' => (
+    isa => 'Int'
+    ,is => 'rw'
+    ,default => 0
+);
+
 ############################################################
 #
 # Method Modifiers definition
@@ -240,6 +247,8 @@ sub _check_require_base {
     return if !$args{id_base};
 
     my $base = $self->search_domain_by_id($args{id_base});
+    confess "Domain id $args{id_base} not found" if !$base;
+
     die "ERROR: Domain ".$self->name." is not base"
             if !$base->is_base();
 

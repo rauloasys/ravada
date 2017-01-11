@@ -46,6 +46,13 @@ has type => (
     ,default => 'qemu'
 );
 
+# let's keep a list of the domains in memory
+has 'domains' => (
+    isa => 'HashRef'
+    ,is => 'rw'
+    ,default => sub { {} }
+);
+
 #########################################################################3
 #
 
@@ -187,6 +194,9 @@ Returns true or false if domain exists.
 sub search_domain {
     my $self = shift;
     my $name = shift or confess "Missing name";
+    return $self->list_domains($name);
+
+=pod
 
     $self->connect();
     my @all_domains;
@@ -196,7 +206,8 @@ sub search_domain {
     for my $dom (@all_domains) {
         next if $dom->get_name ne $name;
 
-        my $domain;
+        my $domain = $self->domains->{$name};
+        return $domain if $domain;
 
         my @args_create = ();
         @args_create = ( storage => $self->storage_pool
@@ -212,10 +223,14 @@ sub search_domain {
         };
         warn $@ if $@;
         if ($domain) {
+            $self->domains->{$name} = $domain;
             return $domain;
         }
     }
     return;
+
+=cut
+
 }
 
 
@@ -229,22 +244,41 @@ Returns a list of the created domains
 
 sub list_domains {
     my $self = shift;
+    my $req_name = shift;
 
     my @list;
     my @domains = $self->vm->list_all_domains();
-    for my $name (@domains) {
-        my $domain ;
+    for my $dom (sort {$a->get_name cmp $a->get_name} @domains) {
+        next if $req_name && $dom->get_name ne $req_name;
+
+        my $domain = $self->domains->{$dom->get_name};
+        return $domain if $domain && $req_name;
+
+        if (!$domain) {
+            my @args_create = ();
+            @args_create = ( storage => $self->storage_pool
+                    ,_vm => $self)
+            if !$self->readonly;
+
+            $domain = Ravada::Domain::KVM->new(
+                          domain => $dom
+                          ,readonly => $self->readonly
+                          ,@args_create
+            );
+
+            $self->domains->{$dom->get_name} = $domain
+                if $self->cache_enabled();
+            return $domain if $domain && $req_name;# && $dom->get_name eq $req_name;
+            die "something is wrong" if $req_name;
+        }
+        next if !$domain || !$domain->is_known;
         my $id;
-        $domain = Ravada::Domain::KVM->new(
-                          domain => $name
-                        ,storage => $self->storage_pool
-                        ,_vm => $self
-        );
-        next if !$domain->is_known();
-        $id = $domain->id();
+        eval { $id = $domain->id() };
         warn $@ if $@ && $@ !~ /No DB info/i;
+
         push @list,($domain) if $domain && $id;
     }
+    return if $req_name;
     return @list;
 }
 
@@ -413,6 +447,7 @@ sub _search_domain_by_id {
     my $row = $sth->fetchrow_hashref;
     $sth->finish;
 
+    confess "ERROR: Domain id $id not found" if !$row->{name};
     return $self->search_domain($row->{name});
 }
 

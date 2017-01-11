@@ -20,6 +20,8 @@ my $USER = create_user('foo','bar');
 
 my $TIME_BOOT = 30;
 
+my %DOMAIN_ALREADY_THERE;
+
 #################################################################
 
 sub test_create_domain {
@@ -35,6 +37,9 @@ sub test_create_domain {
     $domain = $vm->search_domain($name);
     if ($domain ) {
         rvd_back->import_domain(name => $name, vm => $vm_name, user => $USER->name);
+        $DOMAIN_ALREADY_THERE{$name}=1;
+        $domain->start($USER)  if !$domain->is_active;
+        $domain->resume($USER) if $domain->is_paused;
         return $domain;
     }
 
@@ -56,7 +61,7 @@ sub test_create_domain {
         Sys::Virt::Domain::KEYCODE_SET_RFB
         ,1000, [28]
     );
-
+    sleep 30;
     return $domain;
 }
 
@@ -71,7 +76,7 @@ sub test_format_disk {
         ,1000,[29,56,60]);
     sleep 3;
     send_line($domain,'root','woofwoof');
-    sleep 3;
+    sleep 1;
     send_line($domain,"fdisk $dev");
     sleep 1;
     send_line($domain,'n','p','1','','','w');
@@ -84,6 +89,13 @@ sub test_format_disk {
 
 sub send_use_disk {
     my ($vm_name, $domain) = @_;
+
+    diag("sending ctrl-alt-f2");
+    $domain->domain->send_key(
+        Sys::Virt::Domain::KEYCODE_SET_RFB
+        ,1000,[29,56,60]);
+    sleep 3;
+
     send_line($domain,"for i in `ls /usr/bin/`; do echo \$i "
                         ."; cp /usr/bin/\$i /diska1/ "
                         .'; sleep 0.1'
@@ -128,8 +140,8 @@ sub test_compare_disk_load {
 
 #################################################################
 
-#remove_old_domains();
-#remove_old_disks();
+remove_old_domains();
+remove_old_disks();
 
 for my $vm_name ('KVM') {
 
@@ -151,14 +163,15 @@ for my $vm_name ('KVM') {
         my $domain2 = test_create_domain($vm_name) or next;
 
 #        test_compare_cpu_load($vm_name, $domain1,$domain2);
-        test_format_disk($vm_name, $domain1);
+        test_format_disk($vm_name, $domain1) 
+            if !$DOMAIN_ALREADY_THERE{$domain1->name};
 #        test_format_disk($vm_name, $domain2);
         send_use_disk($vm_name, $domain1);
 #
         test_compare_disk_load($vm_name, $domain1,$domain2);
     }
 }
-#remove_old_domains();
-#remove_old_disks();
+remove_old_domains();
+remove_old_disks();
 
 done_testing();

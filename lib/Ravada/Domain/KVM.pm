@@ -865,10 +865,20 @@ sub disk_load {
     }
     my ($reqs_old, $time_old) = $self->_last_reqs_time();
 
-    my $load = ($reqs-$reqs_old)/($time - $time_old);
-    $self->_last_reqs_time($reqs,$time)     if $time > $time_old ;
-    $self->_store_disk_load($load, $time)   if $time > $time_old ;
+    if ($time_old == $time) {
+        warn "still in the same second, returning last load";
+        my ($load) = @{$self->_disk_load->[-1]};
+        return $load;
+    }
 
+    my $load = ($reqs-$reqs_old)/($time - $time_old);
+    $self->_last_reqs_time($reqs,$time);
+    warn $self."\n";
+#    warn Dumper($self->_disk_load);
+    $self->_store_disk_load($load, $time);
+    warn " reqs=($reqs, $time) | old=($reqs_old, $time_old) => $load\n";
+
+#    warn Dumper($self->_disk_load);
     return $load;
 
 }
@@ -880,13 +890,13 @@ sub _last_reqs_time {
         $self->{_last_reqs_time} = [ @_ ];
         return @_;
     }
-    return (0,0) if !$self->{_last_reqs_time};
+    return (0,time - 2) if !$self->{_last_reqs_time};
     return @{$self->{_last_reqs_time}};
 }
 
 sub _store_disk_load {
     my $self = shift;
-    push @{$self->_disk_load},[@_];
+    push @{$self->_disk_load},([@_]);
 }
 
 sub recent_disk_load {
@@ -894,11 +904,11 @@ sub recent_disk_load {
     my $seconds = (shift or 60);
 
     my ($count,$total_load) = (0,0);
-    warn "recent disk load ".$self->name."\n";
+    warn "recent disk load ".$self->name." ($seconds)\n";
     for (reverse @{$self->_disk_load}) {
         my ($load, $time) = ($_->[0],$_->[1]);
         last if time-$time>$seconds;   
-        warn ''.localtime($time)." $load\n";
+        warn "\t".localtime($time)." $load\n";
         $count++;
         $total_load += $load;
         
