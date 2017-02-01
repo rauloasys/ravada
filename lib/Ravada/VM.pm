@@ -34,6 +34,13 @@ requires 'connect';
 requires 'disconnect';
 
 ############################################################
+#
+has 'name' => (
+       isa => 'Str'
+       ,is => 'ro'
+  ,builder => '_set_default_name'
+     ,lazy => 1
+);
 
 has 'host' => (
           isa => 'Str'
@@ -66,6 +73,16 @@ before 'create_domain' => \&_pre_create_domain;
 before 'search_domain' => \&_connect;
 
 before 'create_volume' => \&_connect;
+
+#############################################################
+#
+# setters
+#
+sub _set_name {
+    my $self = shift;
+
+    return $self->type." VM on ".$self->host;
+}
 
 #############################################################
 #

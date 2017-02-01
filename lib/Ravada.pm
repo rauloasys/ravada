@@ -1114,6 +1114,40 @@ sub search_vm {
     return;
 }
 
+=head2 add_vm
+
+    $vm2 = $rvd_back->add_vm(
+          name => $vm_name
+        , type => 'kvm'
+        , host => $IP
+    );
+
+=cut
+
+sub add_vm {
+    my $self = shift;
+    my %args = @_;
+
+    my $name = $args{name} or croak "ERROR: Missing VM name";
+    my $type = $args{type} or croak "ERROR: Missing VM type";
+    # TODO check valid types
+    my $host = ($args{host} or 'localhost');
+
+    my $vm0 = {};
+    my $class = 'Ravada::VM::'.uc($type);
+
+    bless($vm0,$class);
+    my $vm = $class->new( %args );
+
+    my $sth = $CONNECTOR->dbh->prepare("INSERT INTO vms "
+            ."(name, vtype, host)"
+            ." VALUES(?,?,?)");
+    $sth->execute($name, $type, $host);
+    $sth->finish;
+
+    return $vm;
+}
+
 =head2 import_domain
 
 Imports a domain in Ravada
