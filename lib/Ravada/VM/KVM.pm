@@ -13,6 +13,7 @@ use IO::Interface::Simple;
 use JSON::XS;
 use LWP::UserAgent;
 use Moose;
+use Net::SSH2;
 use Sys::Virt;
 use URI;
 use XML::LibXML;
@@ -74,8 +75,9 @@ sub _connect {
     if ($self->host eq 'localhost') {
         $vm = Sys::Virt->new( address => $self->type.":///system" , readonly => $self->readonly);
     } else {
-        $vm = Sys::Virt->new( address => $self->type."+ssh"."://".$self->host."/system"
-                              ,readonly => $self->mode
+        $vm = Sys::Virt->new( address => $self->type."+ssh"."://root\@".$self->host."/system"
+                                        .'?socket=/var/run/libvirt/libvirt-sock'
+                              ,readonly => $self->readonly
                           );
     }
 #    $vm->register_close_callback(\&_reconnect);
@@ -273,11 +275,7 @@ sub create_volume {
     eval { $doc = $XML->load_xml(IO => $fh) };
     die "ERROR reading $file_xml $@"    if $@;
 
-    my (undef, $img_file) = tempfile("${name}-XXXX"
-        ,DIR => $dir_img
-        ,OPEN => 0
-        ,SUFFIX => '.img'
-    );
+    my $img_file = $self->_tempfile($dir_img,$name);
     my ($volume_name) = $img_file =~m{.*/(.*)};
     $doc->findnodes('/volume/name/text()')->[0]->setData($volume_name);
     $doc->findnodes('/volume/key/text()')->[0]->setData($img_file);
@@ -293,10 +291,42 @@ sub create_volume {
     my $vol = $self->storage_pool->create_volume($doc->toString);
     die "volume $img_file does not exists after creating volume "
             .$doc->toString()
-            if ! -e $img_file;
+            if ! $self->_file_exists($img_file);
 
     return $img_file;
 
+}
+
+sub _tempfile {
+    my $self = shift;
+
+    return $self->_tempfile_local(@_)   if $self->_localhost;
+    return $self->_tempfile_remote(@_);
+}
+
+sub _tempfile_local {
+    my $self = shift;
+    my ($dir,$name) = @_;
+
+    my (undef, $img_file) = tempfile("${name}-XXXX"
+        ,DIR => $dir
+        ,OPEN => 0
+        ,SUFFIX => '.img'
+    );
+    return $img_file;
+}
+
+sub _tempfile_remote {
+    my $self = shift;
+    my ($dir,$name) = @_;
+
+    my @cmd = ('mktemp','-u',"$dir/$name-XXXX.img");
+
+    my $out = $self->_run_remote(@cmd);
+    chomp $out;
+    die "Error on ".join(" ",@cmd)." $out"
+        if !$out || $out !~ /\.img$/;
+    return $out;
 }
 
 =head2 search_volume
@@ -338,7 +368,7 @@ sub _domain_create_from_iso {
     die "ERROR: Empty field 'xml_volume' in iso_image ".Dumper($iso)
         if !$iso->{xml_volume};
 
-    my $device_cdrom = _iso_name($iso, $args{request});
+    my $device_cdrom = $self->_iso_name($iso, $args{request});
 
     my $disk_size = $args{disk} if $args{disk};
     my $device_disk = $self->create_volume($args{name}, $DIR_XML."/".$iso->{xml_volume}
@@ -532,6 +562,7 @@ sub _fix_pci_slots {
 }
 
 sub _iso_name {
+    my $self = shift;
     my $iso = shift;
     my $req = shift;
 
@@ -543,34 +574,80 @@ sub _iso_name {
     confess "Missing MD5 field on table iso_images FOR $iso->{url}"
         if !$iso->{md5};
 
-    if (! -e $device || ! -s $device) {
+    if (!$self->_file_exists($device)) {
         $req->status("downloading $iso_name file"
                 ,"Downloading ISO file for $iso_name "
                  ." from $iso->{url}. It may take several minutes"
         )   if $req;
-        _download_file_external($iso->{url}, $device);
+        $self->_download_file_external($iso->{url}, $device);
     }
     confess "Download failed, MD5 missmatched"
-            if (! _check_md5($device, $iso->{md5}));
+            if (! $self->_check_md5($device, $iso->{md5}));
     return $device;
 }
 
+sub _file_exists {
+    my $self = shift;
+    my $file = shift;
+
+    return -e $file && -s $file if $self->_localhost;
+
+    my @cmd = ('test','-e',$file,'&&','test','-s',$file,'&&','echo','ok');
+
+    my $out = $self->_run_remote(@cmd);
+    return $out =~ /ok/i;
+}
+
+sub _localhost {
+    my $self = shift;
+    return $self->host =~ /^localhost$/i
+        || $self->host eq '127.0.0.1';
+}
+
 sub _check_md5 {
-    my ($file, $md5 ) =@_;
+    my $self = shift;
+    my ( $file, $md5) = @_;
+
+    my $digest = '';
+    if ($self->_localhost) {
+        $digest = $self->_check_md5_local($file);
+    } else {
+        $digest = ( $self->_check_md5_remote($file) or '');
+    }
+    confess "Undefined digest ".$self->host  if !defined $digest;
+    return 1 if $digest eq $md5;
+
+    warn "$file MD5 fails\n"
+        ." got  : '$digest'\n"
+        ."expecting: '$md5'\n"
+        ;
+    return 0;
+
+}
+
+sub _check_md5_remote {
+    my $self = shift;
+    my $file = shift;
+
+    my @cmd = ('/usr/bin/md5sum', $file);
+    my $stdout = $self->_run_remote(@cmd);
+    my ($md5_out) = $stdout =~ /^(.+?)\s+/;
+
+    return $md5_out;
+
+}
+
+sub _check_md5_local {
+    my $self = shift;
+    my $file = @_;
 
     my  $ctx = Digest::MD5->new;
     open my $in,'<',$file or die "$! $file";
     $ctx->addfile($in);
 
-    my $digest = $ctx->hexdigest;
+    return $ctx->hexdigest;
 
-    return 1 if $digest eq $md5;
 
-    warn "$file MD5 fails\n"
-        ." got  : $digest\n"
-        ."expecting: $md5\n"
-        ;
-    return 0;
 }
 
 sub _download_file_lwp_progress {
@@ -619,8 +696,20 @@ sub _download_file_lwp {
 }
 
 sub _download_file_external {
+    my $self = shift;
     my ($url,$device) = @_;
     my @cmd = ("/usr/bin/wget",,'--quiet',$url,'-O',$device);
+    return $self->_download_file_external_local($device, @cmd)
+        if $self->host eq 'localhost';
+    
+    return $self->_download_file_external_remote($device, @cmd);
+}
+
+
+sub _download_file_external_local {
+    my $self = shift;
+    my ($device,@cmd) = @_;
+
     my ($in,$out,$err) = @_;
     warn join(" ",@cmd)."\n";
     run3(\@cmd,\$in,\$out,\$err);
@@ -628,6 +717,39 @@ sub _download_file_external {
     chmod 0755,$device or die "$! chmod 0755 $device"
         if -e $device;
     die $err if $err;
+}
+
+sub _download_file_external_remote {
+    my $self = shift;
+    my ($device,@cmd) = @_;
+    my ($stdout, $stderr) = $self->_run_remote(@cmd);
+}
+
+sub _run_remote {
+    my $self = shift;
+    my @cmd = @_;
+
+    my $ssh = Net::SSH2->new();
+#    $ssh->timeout(1000);
+    $ssh->connect($self->host) or die $ssh->die_with_error;
+    $ssh->auth_publickey('root',$ENV{HOME}."/.ssh/id_rsa.pub",$ENV{HOME}.'/.ssh/id_rsa');
+    my $chan = $ssh->channel();
+
+    warn "Executing in ".$self->host."\n"
+        .join(" ",@cmd);
+    $chan->exec(join(" ",@cmd)) or die $ssh->die_with_error;
+    $chan->send_eof();
+    
+    my $out = '';
+    while (<$chan>) {
+        $out .= $_;
+    }
+    warn "exit status: ".$chan->exit_status;
+    my $stderr;
+    my $err = $chan->read(\$stderr,1000,1);
+    warn $err if $err;
+
+    return $out;
 }
 
 sub _search_iso {
