@@ -47,10 +47,11 @@ sub test_vm_connect {
 
 sub test_search_vm {
     my $vm_name = shift;
+    my $vm_type = shift;
 
-    return if $vm_name eq 'Void';
+    return if $vm_type eq 'Void';
 
-    my $class = "Ravada::VM::$vm_name";
+    my $class = "Ravada::VM::$vm_type";
 
     my $ravada = Ravada->new(@ARG_RVD);
     my $vm = $ravada->search_vm($vm_name);
@@ -62,6 +63,9 @@ sub test_search_vm {
 
 sub test_create_domain {
     my $vm_name = shift;
+    my $vm_type = shift;
+
+    ($vm_type) = $vm_name =~ /(\w+)_/   if !$vm_type;
 
     my $ravada = Ravada->new(@ARG_RVD);
     my $vm = $ravada->search_vm($vm_name);
@@ -69,16 +73,16 @@ sub test_create_domain {
 
     my $name = new_domain_name();
 
-    if (!$ARG_CREATE_DOM{$vm_name}) {
+    if (!$ARG_CREATE_DOM{$vm_type}) {
         diag("VM $vm_name should be defined at \%ARG_CREATE_DOM");
         return;
     }
-    my @arg_create = @{$ARG_CREATE_DOM{$vm_name}};
+    my @arg_create = @{$ARG_CREATE_DOM{$vm_type}};
 
     my $domain;
     eval { $domain = $vm->create_domain(name => $name
                     , id_owner => $USER->id
-                    , @{$ARG_CREATE_DOM{$vm_name}})
+                    , @{$ARG_CREATE_DOM{$vm_type}})
     };
 
     ok($domain,"No domain $name created with ".ref($vm)." ".($@ or '')) or exit;
@@ -249,13 +253,19 @@ sub set_bogus_ip {
 }
 #######################################################
 
+init_ip();
+
 remove_old_domains();
 remove_old_disks();
 
-for my $vm_name (qw( Void KVM )) {
+my @ips = ( undef );
+push @ips, (remote_ip()) if remote_ip();
 
-    diag("Testing $vm_name VM");
-    my $CLASS= "Ravada::VM::$vm_name";
+for my $ip ( @ips ) {
+for my $vm_type (qw( Void KVM )) {
+
+    diag("Testing $vm_type VM on ".($ip or 'localhost'));
+    my $CLASS= "Ravada::VM::$vm_type";
 
     use_ok($CLASS) or next;
 
@@ -263,18 +273,30 @@ for my $vm_name (qw( Void KVM )) {
     eval { $RAVADA = Ravada->new(@ARG_RVD) };
 
     my $vm;
-
-    eval { $vm = $RAVADA->search_vm($vm_name) } if $RAVADA;
+    my $vm_name = $vm_type;
+    eval { 
+        if ($ip) {
+            $vm_name = "${vm_type}_$ip";
+            $vm = $RAVADA->add_vm( 
+                name => $vm_name
+                ,type => $vm_type
+                ,host => $ip
+            ) if $vm_type ne 'Void';
+        } else {
+            $vm = $RAVADA->search_vm($vm_type);
+        }
+    } if $RAVADA;
+    warn $@ if $@;
 
     SKIP: {
-        my $msg = "SKIPPED test: No $vm_name VM found ";
+        my $msg = "SKIPPED test: No $vm_type VM found ";
         diag($msg)      if !$vm;
         skip $msg,10    if !$vm;
 
-        test_vm_connect($vm_name);
-        test_search_vm($vm_name);
+        test_vm_connect($vm_type);
+        test_search_vm($vm_name, $vm_type);
 
-        my $domain = test_create_domain($vm_name);
+        my $domain = test_create_domain($vm_name, $vm_type);
         test_change_interface($vm_name,$domain);
         ok($domain->has_clones==0,"[$vm_name] has_clones expecting 0, got ".$domain->has_clones);
         my $clone1 = $domain->clone(user=>$USER,name=>new_domain_name);
@@ -297,6 +319,7 @@ for my $vm_name (qw( Void KVM )) {
         test_remove_domain($vm_name, $clone2);
         test_remove_domain($vm_name, $domain);
     };
+}
 }
 remove_old_domains();
 remove_old_disks();
