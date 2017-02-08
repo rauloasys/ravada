@@ -306,4 +306,51 @@ sub _check_require_base {
 
 }
 
+=head2 file_exists
+
+Return true if the file exists in the storage pool in the VM
+
+=cut
+
+sub file_exists {
+    my $self = shift;
+    my $file = shift;
+
+    return -e $file && -s $file if $self->_localhost;
+
+    my @cmd = ('test','-e',$file,'&&','test','-s',$file,'&&','echo','ok');
+
+    my $out = $self->_run_remote(@cmd);
+    return $out =~ /ok/i;
+}
+
+sub _run_remote {
+    my $self = shift;
+    my @cmd = @_;
+
+    my $ssh = Net::SSH2->new();
+#    $ssh->timeout(1000);
+    $ssh->connect($self->host) or die $ssh->die_with_error;
+    $ssh->auth_publickey('root',$ENV{HOME}."/.ssh/id_rsa.pub",$ENV{HOME}.'/.ssh/id_rsa');
+    my $chan = $ssh->channel();
+
+    warn "Executing in ".$self->host."\n"
+        .join(" ",@cmd);
+    $chan->exec(join(" ",@cmd)) or die $ssh->die_with_error;
+    $chan->send_eof();
+    
+    my $out = '';
+    while (<$chan>) {
+        $out .= $_;
+    }
+#    warn "exit status: ".$chan->exit_status;
+    my $stderr;
+    my $err = $chan->read(\$stderr,1000,1);
+#    warn $err if $err;
+
+    return $out;
+}
+
+
+
 1;

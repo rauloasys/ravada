@@ -299,7 +299,11 @@ for my $vm_type (qw( Void KVM )) {
         my $domain = test_create_domain($vm_name, $vm_type);
         test_change_interface($vm_name,$domain);
         ok($domain->has_clones==0,"[$vm_name] has_clones expecting 0, got ".$domain->has_clones);
-        my $clone1 = $domain->clone(user=>$USER,name=>new_domain_name);
+        my $clone1;
+        diag("going to clone");
+        eval { $clone1 = $domain->clone(user=>$USER,name=>new_domain_name) };
+        diag("cloned");
+        is($@,'');
         ok($clone1, "Expecting clone ");
         ok($domain->has_clones==1,"[$vm_name] has_clones expecting 1, got ".$domain->has_clones);
         $clone1->shutdown_now($USER);

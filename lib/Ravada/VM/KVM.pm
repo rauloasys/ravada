@@ -291,7 +291,7 @@ sub create_volume {
     my $vol = $self->storage_pool->create_volume($doc->toString);
     die "volume $img_file does not exists after creating volume "
             .$doc->toString()
-            if ! $self->_file_exists($img_file);
+            if ! $self->file_exists($img_file);
 
     return $img_file;
 
@@ -574,7 +574,7 @@ sub _iso_name {
     confess "Missing MD5 field on table iso_images FOR $iso->{url}"
         if !$iso->{md5};
 
-    if (!$self->_file_exists($device)) {
+    if (!$self->file_exists($device)) {
         $req->status("downloading $iso_name file"
                 ,"Downloading ISO file for $iso_name "
                  ." from $iso->{url}. It may take several minutes"
@@ -584,18 +584,6 @@ sub _iso_name {
     confess "Download failed, MD5 missmatched"
             if (! $self->_check_md5($device, $iso->{md5}));
     return $device;
-}
-
-sub _file_exists {
-    my $self = shift;
-    my $file = shift;
-
-    return -e $file && -s $file if $self->_localhost;
-
-    my @cmd = ('test','-e',$file,'&&','test','-s',$file,'&&','echo','ok');
-
-    my $out = $self->_run_remote(@cmd);
-    return $out =~ /ok/i;
 }
 
 sub _check_md5 {
@@ -717,33 +705,6 @@ sub _download_file_external_remote {
     my $self = shift;
     my ($device,@cmd) = @_;
     my ($stdout, $stderr) = $self->_run_remote(@cmd);
-}
-
-sub _run_remote {
-    my $self = shift;
-    my @cmd = @_;
-
-    my $ssh = Net::SSH2->new();
-#    $ssh->timeout(1000);
-    $ssh->connect($self->host) or die $ssh->die_with_error;
-    $ssh->auth_publickey('root',$ENV{HOME}."/.ssh/id_rsa.pub",$ENV{HOME}.'/.ssh/id_rsa');
-    my $chan = $ssh->channel();
-
-    warn "Executing in ".$self->host."\n"
-        .join(" ",@cmd);
-    $chan->exec(join(" ",@cmd)) or die $ssh->die_with_error;
-    $chan->send_eof();
-    
-    my $out = '';
-    while (<$chan>) {
-        $out .= $_;
-    }
-    warn "exit status: ".$chan->exit_status;
-    my $stderr;
-    my $err = $chan->read(\$stderr,1000,1);
-    warn $err if $err;
-
-    return $out;
 }
 
 sub _search_iso {

@@ -267,7 +267,7 @@ sub _create_qcow_base {
     for  my $base_img ( $self->list_volumes()) {
 
         confess "ERROR: missing $base_img"
-            if !-e $base_img;
+            if !$self->_vm->file_exists($base_img);
         my $qcow_img = $base_img;
     
         $qcow_img =~ s{\.\w+$}{\.ro.qcow2};
@@ -279,17 +279,15 @@ sub _create_qcow_base {
                 ,$qcow_img
         );
 
-        my ($in, $out, $err);
-        run3(\@cmd,\$in,\$out,\$err);
-        warn $out  if $out;
-        warn $err   if $err;
+        warn join(" ",@cmd)."\n";
+        $self->_vm->_run_remote(@cmd);
 
-        if (! -e $qcow_img) {
+        if (!$self->_vm->file_exists($qcow_img)) {
             warn "ERROR: Output file $qcow_img not created at ".join(" ",@cmd)."\n";
             exit;
         }
 
-        chmod 0555,$qcow_img;
+        $self->_vm->_run_remote("chmod","0555",$qcow_img);
         $self->_prepare_base_db($qcow_img);
     }
     return @qcow_img;
@@ -891,12 +889,9 @@ sub spinoff_volumes {
             ,$volume
             ,$volume_tmp
         );
-        my ($in, $out, $err);
-        run3(\@cmd,\$in,\$out,\$err);
-        warn $out  if $out;
-        warn $err   if $err;
+        $self->_vm->_run_remote(@cmd);
         die "ERROR: Output file $volume_tmp not created at ".join(" ",@cmd)."\n"
-            if (! -e $volume_tmp );
+            if (! $self->_vm->file_exists($volume_tmp) );
 
         copy($volume_tmp,$volume) or die "$! $volume_tmp -> $volume";
         unlink($volume_tmp) or die "ERROR $! removing $volume_tmp";

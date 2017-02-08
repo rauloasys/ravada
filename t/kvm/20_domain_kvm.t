@@ -1,6 +1,7 @@
 use warnings;
 use strict;
 
+use Carp qw(confess);
 use Data::Dumper;
 use IPC::Run3;
 use Test::More;
@@ -118,15 +119,15 @@ sub test_prepare_base {
 
 
 sub test_domain_inactive {
-    my $domain = test_domain(0);
+    my $vm = shift;
+    my $domain = test_domain($vm, 0);
 }
 
 sub test_domain{
-
+    my $vm =shift or confess "Missing VM";
     my $active = shift;
     $active = 1 if !defined $active;
 
-    my $vm = $RAVADA->search_vm('kvm');
     my $n_domains = scalar $vm->list_domains();
     my $domain = test_new_domain($active);
 
@@ -243,23 +244,40 @@ sub test_prepare_import {
 
 ################################################################
 
-my $vm;
-
-eval { $vm = $RAVADA->search_vm('kvm') } if $RAVADA;
-SKIP: {
-    my $msg = "SKIPPED test: No KVM backend found";
-    diag($msg)      if !$vm;
-    skip $msg,10    if !$vm;
-
-test_vm_kvm();
+init_ip();
 
 remove_old_domains();
 remove_old_disks();
-test_domain();
-test_domain_missing_in_db();
-test_domain_inactive();
-test_domain_by_name();
-test_prepare_import();
 
-};
+my @host = ('localhost');
+push @host,(remote_ip) if remote_ip;
+
+for my $host (@host) {
+
+    my ($vm, $vm_real);
+    eval { 
+        my $vm = $RAVADA->add_vm( name => "KVM_$host", type => 'KVM', host => $host) ;
+        $vm_real  = $vm->vm if $vm;
+    } if $RAVADA;
+    warn $@ if $@;
+    SKIP: {
+        my $msg = "SKIPPED test: No KVM backend found at $host";
+        diag($msg)      if !$vm_real;
+        skip $msg,11    if !$vm_real;
+    
+        next if !$vm;
+        test_vm_kvm()   if $host eq 'localhost';
+    
+        test_domain($vm);
+        test_domain_missing_in_db();
+        test_domain_inactive($vm);
+        test_domain_by_name();
+        test_prepare_import();
+    
+    };
+}
+
+remove_old_domains();
+remove_old_disks();
+    
 done_testing();
