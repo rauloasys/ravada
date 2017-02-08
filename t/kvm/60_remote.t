@@ -15,29 +15,45 @@ my $test = Test::SQL::Data->new(config => 't/etc/sql.conf');
 use_ok('Ravada');
 
 my $FILE_CONFIG = 't/etc/ravada.conf';
-my $FILE_CONFIG_REMOTE = "t/etc/remote_vm.conf";
 
 my @ARG_RVD = ( config => $FILE_CONFIG,  connector => $test->connector);
 init($test->connector, $FILE_CONFIG);
 
-my $IP;
+my $IP = init_ip();
+my $USER = create_user('foo','bar');
 
-sub init_ip {
-    return if !-e $FILE_CONFIG_REMOTE;
+##########################################################################
 
-    open my $in ,'<', $FILE_CONFIG_REMOTE;
-    $IP =<$in>;
-    chomp $IP;
-    close $in;
+sub test_create_domain {
+    my $vm = shift;
+
+    my $name = new_domain_name();
+
+    my $domain;
+    eval { $domain = $vm->create_domain(
+            name => $name
+            ,id_owner => $USER->id
+            ,id_iso => 1
+        );
+    };
+    ok(!$@,"Expecting no error creating domain in remote VM at $IP, got '"
+            .($@ or '<UNDEF>')."'");
+    ok($domain) or return;
+
+    return $domain;
 }
 
 ###########################################################3
 
 init_ip();
 
+remove_old_domains();
+remove_old_disks();
+
 SKIP: {
     if (!defined $IP) {
-        my $msg = "skipped, missing the remote testing IP in the file $FILE_CONFIG_REMOTE";
+        my $msg = "skipped, missing the remote testing IP in the file "
+            .$Test::Ravada::FILE_CONFIG_REMOTE;
         diag($msg);
         skip($msg,10);
     }
@@ -54,7 +70,7 @@ SKIP: {
     eval {
         $vm2 = $rvd_back->add_vm(
                   name => $vm_name
-                , type => 'kvm'
+                , type => 'KVM'
                 , host => $IP
         );
     };
@@ -72,6 +88,14 @@ SKIP: {
         );
     };
     like($@ ,qr/duplicate|unique/i);
+
+    my $vm3 = $rvd_back->search_vm($vm_name);
+    ok($vm3,"Expecting a VM searching for '$vm_name'");
+
+    my $domain = test_create_domain($vm3);
 }
+
+remove_old_domains();
+remove_old_disks();
 
 done_testing();
