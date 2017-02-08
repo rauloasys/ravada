@@ -176,7 +176,7 @@ sub _connect_vm {
 
     my @vms;
     eval { @vms = $self->vm };
-    warn $@ if $@;
+    warn "WARNING: $@" if $@ && $DEBUG;
     return if $@ && $@ =~ /No VMs found/i;
     die $@ if $@;
 
@@ -212,7 +212,7 @@ sub _create_vm {
         $err .= "\n$err_lxc" if $err_lxc;
     }
     if (!@vms) {
-        warn "No VMs found: $err\n";
+        warn "No VMs found: $err\n" if $DEBUG;
     }
     return \@vms;
 
@@ -1092,6 +1092,16 @@ Searches for a VM of a given type
 =cut
 
 sub search_vm {
+    my $self = shift;
+    my $name = shift;
+
+    my $vm = Ravada::VM->open($name);
+    return $vm if $vm;
+
+    return $self->_search_vm_by_type($name);
+}
+
+sub _search_vm_by_type {
     my $self = shift;
     my $type = shift;
 
