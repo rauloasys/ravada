@@ -132,14 +132,15 @@ sub _vm_disconnect {
 }
 
 sub _start_preconditions{
+    my ($self) = @_;
     
     if (scalar @_ %2 ) {
         _allow_manage_args(@_);
     } else {
         _allow_manage(@_);
     }
-    _check_free_memory();
-    _check_used_memory(@_);
+    $self->_check_free_memory();
+    $self->_check_used_memory(@_);
 
 }
 
@@ -223,6 +224,9 @@ sub _check_has_clones {
 }
 
 sub _check_free_memory{
+    my $self = shift;
+    return if !$self->_vm->_localhost();
+
     my $lxs  = Sys::Statistics::Linux->new( memstats => 1 );
     my $stat = $lxs->get;
     die "ERROR: No free memory. Only ".int($stat->memstats->{realfree}/1024)
@@ -232,6 +236,8 @@ sub _check_free_memory{
 
 sub _check_used_memory {
     my $self = shift;
+    return if !$self->_vm->_localhost();
+
     my $used_memory = 0;
 
     my $lxs  = Sys::Statistics::Linux->new( memstats => 1 );

@@ -598,12 +598,6 @@ sub _file_exists {
     return $out =~ /ok/i;
 }
 
-sub _localhost {
-    my $self = shift;
-    return $self->host =~ /^localhost$/i
-        || $self->host eq '127.0.0.1';
-}
-
 sub _check_md5 {
     my $self = shift;
     my ( $file, $md5) = @_;

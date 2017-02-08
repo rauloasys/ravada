@@ -238,6 +238,12 @@ sub ip {
     return '127.0.0.1';
 }
 
+sub _localhost {
+    my $self = shift;
+    return $self->host =~ /^localhost$/i
+        || $self->host eq '127.0.0.1';
+}
+
 sub _ip_from_hostname {
     my $res = Net::DNS::Resolver->new();
     my $reply = $res->search(hostname());
