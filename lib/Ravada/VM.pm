@@ -74,6 +74,42 @@ before 'search_domain' => \&_connect;
 
 before 'create_volume' => \&_connect;
 
+=head1 CONSTRUCTORS
+
+=head2 open
+
+Opens a Virtual Machine Manager
+
+    my $vm = Ravada::VM->open($name);
+
+=cut
+
+sub open {
+    my $self = shift;
+    my $name = shift;
+
+    my $sth = $$CONNECTOR->dbh->prepare(
+        "SELECT vtype, host "
+        ." FROM vms "
+        ." WHERE name=?"
+    );
+    $sth->execute($name);
+
+    my ($type, $host) = $sth->fetchrow;
+    $sth->finish;
+    return if !$type;
+
+    my $class = "Ravada::VM::$type";
+    my $vm0 = {};
+    bless $vm0,$class;
+
+    return $vm0->new( 
+        name => $name
+       ,host => $host
+    );
+
+}
+
 #############################################################
 #
 # setters
