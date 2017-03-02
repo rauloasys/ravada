@@ -63,7 +63,7 @@ our ($DOWNLOAD_FH, $DOWNLOAD_TOTAL);
 our $CONNECTOR = \$Ravada::CONNECTOR;
 
 ##########################################################################
- 
+
 
 sub _connect {
     my $self = shift;
@@ -139,7 +139,7 @@ Returns the directory where disk images are stored in this Virtual Manager
 sub dir_img {
     my $self = shift;
     return $DEFAULT_DIR_IMG if $DEFAULT_DIR_IMG;
-    
+
     $self->_load_storage_pool();
     return $DEFAULT_DIR_IMG;
 }
@@ -158,7 +158,7 @@ sub create_domain {
     my %args = @_;
 
     $args{active} = 1 if !defined $args{active};
-    
+
     croak "argument name required"       if !$args{name};
     croak "argument id_owner required"   if !$args{id_owner};
     croak "argument id_iso or id_base required ".Dumper(\%args)
@@ -199,7 +199,7 @@ sub search_domain {
         my $domain;
 
         my @args_create = ();
-        @args_create = ( 
+        @args_create = (
                     _vm => $self)
         if !$self->readonly;
 
@@ -323,7 +323,7 @@ sub _domain_create_from_iso {
     my %args = @_;
 
     for (qw(id_iso id_owner name)) {
-        croak "argument $_ required" 
+        croak "argument $_ required"
             if !$args{$_};
     }
 
@@ -388,7 +388,7 @@ sub _domain_create_common {
 
     my $domain = Ravada::Domain::KVM->new(
               _vm => $self
-         , domain => $dom 
+         , domain => $dom
         , storage => $self->storage_pool
     );
 
@@ -444,7 +444,7 @@ sub _create_disk_qcow2 {
         push @files_out,($file_out);
     }
     return @files_out;
-    
+
 }
 
 sub _search_domain_by_id {
@@ -463,7 +463,7 @@ sub _domain_create_from_base {
     my $self = shift;
     my %args = @_;
 
-    confess "argument id_base or base required ".Dumper(\%args) 
+    confess "argument id_base or base required ".Dumper(\%args)
         if !$args{id_base} && !$args{base};
 
     die "Domain $args{name} already exists"
@@ -496,7 +496,7 @@ sub _domain_create_from_base {
 sub _fix_pci_slots {
     my $self = shift;
     my $doc = shift;
-  
+
     my %dupe = ("0x01/0x1" => 1); #reserved por IDE PCI
     my ($all_devices) = $doc->findnodes('/domain/devices');
 
@@ -513,7 +513,7 @@ sub _fix_pci_slots {
             my $slot = $child->getAttribute('slot');
             next if !defined $slot;
             next if !$dupe{"$bus/$slot"}++;
-    
+
             my $new_slot = $slot;
             for (;;) {
                 last if !$dupe{"$bus/$new_slot"};
@@ -677,7 +677,7 @@ sub _xml_modify_video {
     $video->setAttribute( vram => 65536 );
     $video->setAttribute( vgamem => 16384 );
     $video->setAttribute( heads => 1 );
-    
+
     warn "WARNING: more than one video card found\n".
         $video->toString().$video2->toString()  if $video2;
 
@@ -687,7 +687,7 @@ sub _xml_modify_spice_port {
     my $self = shift;
     my $doc = shift or confess "Missing XML doc";
 
-    my ($graph) = $doc->findnodes('/domain/devices/graphics') 
+    my ($graph) = $doc->findnodes('/domain/devices/graphics')
         or die "ERROR: I can't find graphic";
     $graph->setAttribute(type => 'spice');
     $graph->setAttribute(autoport => 'yes');
@@ -810,7 +810,7 @@ sub _xml_add_usb_redirect {
         ,type => 'spicevmc'
     );
     return if $dev;
-    
+
     $dev = $devices->addNewChild(undef,'redirdev');
     $dev->setAttribute( bus => 'usb');
     $dev->setAttribute(type => 'spicevmc');
@@ -827,11 +827,11 @@ sub _search_xml {
 
     confess "Undefined xml => \$xml"
         if !$xml;
- 
+
     for my $item ( $xml->findnodes($name) ) {
         my $missing = 0;
         for my $attr( sort keys %arg ) {
-           $missing++ 
+           $missing++
                 if !$item->getAttribute($attr)
                     || $item->getAttribute($attr) ne $arg{$attr}
         }
@@ -1059,11 +1059,11 @@ sub _unique_mac {
 
 sub _new_uuid {
     my $uuid = shift;
-    
+
     my ($principi, $f1,$f2) = $uuid =~ /(.*)(.)(.)/;
 
     return $principi.int(rand(10)).int(rand(10));
-    
+
 }
 
 sub _xml_modify_mac {
@@ -1096,7 +1096,7 @@ Returns a list of networks known to this VM. Each element is a Ravada::NetInterf
 
 sub list_networks {
     my $self = shift;
-    
+
     $self->connect() if !$self->vm;
     my @nets = $self->vm->list_all_networks();
     my @ret_nets;
@@ -1137,7 +1137,7 @@ sub import_domain {
 
     my $domain = Ravada::Domain::KVM->new(
                       _vm => $self
-                  ,domain => $domain_kvm 
+                  ,domain => $domain_kvm
                 , storage => $self->storage_pool
     );
 

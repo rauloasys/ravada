@@ -1,4 +1,4 @@
-#!/usr/bin/env perl
+ #!/usr/bin/env perl
 use warnings;
 use strict;
 #####
@@ -464,6 +464,24 @@ any '/settings' => sub {
     $c->render(template => 'bootstrap/settings');
 };
 
+###################################################
+
+## new_iso
+
+any '/new_iso' => sub {
+    my $c = shift;
+    new_iso($c);
+};
+
+sub new_iso {
+    my $c = shift;
+
+    # warn $c->param('name');
+    if ($c->param('name')) {
+      $RAVADA->insert_iso( name => $c->param('name'));
+    }
+    $c->render(template => 'bootstrap/new_iso');
+};
 
 ###################################################
 

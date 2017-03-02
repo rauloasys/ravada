@@ -68,7 +68,7 @@ sub list_bases {
     my $self = shift;
     my $sth = $CONNECTOR->dbh->prepare("SELECT * FROM domains where is_base=1");
     $sth->execute();
-    
+
     my @bases = ();
     while ( my $row = $sth->fetchrow_hashref) {
         my $domain;
@@ -134,7 +134,7 @@ sub list_machines_user {
                 );
             }
             $base{name_clone} = $clone->name;
-            $base{screenshot} = ( $clone->_data('file_screenshot') 
+            $base{screenshot} = ( $clone->_data('file_screenshot')
                                 or $base{screenshot});
             $base{is_active} = $clone->is_active;
             $base{id_clone} = $clone->id
@@ -159,7 +159,7 @@ sub search_clone_data {
     $sth->execute( map { $args{$_} } sort keys %args );
     my $row = $sth->fetchrow_hashref;
     return ( $row or {});
-        
+
 }
 
 =cut
@@ -187,7 +187,7 @@ sub list_domains {
 
     my $sth = $CONNECTOR->dbh->prepare("$query $where");
     $sth->execute(map { $args{$_} } sort keys %args);
-    
+
     my @domains = ();
     while ( my $row = $sth->fetchrow_hashref) {
         my $domain ;
@@ -288,6 +288,19 @@ sub list_iso_images {
     return \@iso;
 }
 
+
+sub insert_iso {
+  my $self = shift;
+  my %args = @_;
+  # warn Dumper(\%args);
+  my $sth = $CONNECTOR->dbh->prepare(
+    "INSERT INTO iso_images
+    (name,description,arch,xml,xml_volume,url,md5)
+    VALUES(?,?,?,?,?,?,?)"
+  );
+  $sth->execute($args{name}, undef, undef, undef, undef, undef, undef);
+}
+
 =head2 list_lxc_templates
 
 Returns a reference to a list of the LXC templates known by the system
@@ -321,7 +334,7 @@ sub list_users {
     my $self = shift;
     my $sth = $CONNECTOR->dbh->prepare("SELECT * FROM users ");
     $sth->execute();
-    
+
     my @users = ();
     while ( my $row = $sth->fetchrow_hashref) {
         push @users, ($row);
@@ -351,7 +364,7 @@ Waits for a request for some seconds.
 
 =head3 Arguments
 
-=over 
+=over
 
 =item * request
 
@@ -427,7 +440,7 @@ sub open_vm {
     my $class = "Ravada::VM::$type";
 
     if ($VM{$type}) {
-        return $VM{$type} 
+        return $VM{$type}
     }
 
     my $proto = {};
@@ -632,7 +645,7 @@ sub list_bases_anonymous {
 
     my $sth = $CONNECTOR->dbh->prepare("SELECT * FROM domains where is_base=1 AND is_public=1");
     $sth->execute();
-    
+
     my @bases = ();
     while ( my $row = $sth->fetchrow_hashref) {
         next if !$net->allowed_anonymous($row->{id});
@@ -644,7 +657,7 @@ sub list_bases_anonymous {
 
 }
 
-=head2 disconnect_vm 
+=head2 disconnect_vm
 
 Disconnects all the conneted VMs
 
