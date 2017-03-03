@@ -9,6 +9,10 @@ use Data::Dumper;
 use Getopt::Long;
 use Hash::Util qw(lock_hash);
 use Mojolicious::Lite 'Ravada::I18N';
+
+use Mojo::Upload;
+use Mojo::Asset::File;
+
 #####
 #my $self->plugin('I18N');
 #package Ravada::I18N:en;
@@ -475,9 +479,14 @@ any '/new_iso' => sub {
 
 sub new_iso {
     my $c = shift;
+    #my $upload = Mojo::Upload->new;
+    ### warn $c->param('name');
+    if ($c->param('name') && $c->param('upload')) {
+      my $fileuploaded = $c->req->upload('upload');
 
-    # warn $c->param('name');
-    if ($c->param('name')) {
+      #$upload->move_to('/var/tmp');
+      $fileuploaded->move_to('/var/tmp/'.$c->param('name'));
+
       $RAVADA->insert_iso( name => $c->param('name'));
     }
     $c->render(template => 'bootstrap/new_iso');
