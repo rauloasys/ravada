@@ -479,15 +479,16 @@ any '/new_iso' => sub {
 
 sub new_iso {
     my $c = shift;
-    #my $upload = Mojo::Upload->new;
     ### warn $c->param('name');
     if ($c->param('name') && $c->param('upload')) {
-      my $fileuploaded = $c->req->upload('upload');
+      #$c->param('extension')
+      my $file = $c->param('upload');
+      if( $file->filename =~ /\.iso$/ ) {
+          my $fileuploaded = $c->req->upload('upload');
+          $fileuploaded->move_to('/var/tmp/'.$c->param('name'));
 
-      #$upload->move_to('/var/tmp');
-      $fileuploaded->move_to('/var/tmp/'.$c->param('name'));
-
-      $RAVADA->insert_iso( name => $c->param('name'));
+          $RAVADA->insert_iso( name => $c->param('name'));
+      }
     }
     $c->render(template => 'bootstrap/new_iso');
 };

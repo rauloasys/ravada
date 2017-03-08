@@ -13,21 +13,23 @@
                 <div class="panel panel-default">
                     <div class="panel-heading">
                         <h2 class="text-center"> Insert a new ISO</h2>
-                        <form method='post' enctype="multipart/form-data">
+                        <form onsubmit='alert(document.getElementById('upload').value);' method='post' enctype="multipart/form-data">
                             <p>Name: <input type= 'text' name= 'name' id='name'></p>
-                            <p>ISO:</p><p> <input type='file' name='upload'></p>
-                            <p><input type='submit' value='Enviar'>
+                            <p>ISO:</p><p> <input type='file' name='upload' id='upload'></p>
+                            <p><input type='submit' value='Submit'>
                             </p>
                         </form>
                   </div>
                   </div>
             </div>
         </div>
-
-
-
     </div>
     </div>
+
+<script>
+var file_name = document.getElementById('upload').value;
+var extension = file_name.split(".").pop();
+</script>
 
     %= include 'bootstrap/scripts'
     %= include 'bootstrap/footer'
