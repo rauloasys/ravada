@@ -457,6 +457,15 @@ any '/settings' => sub {
 };
 
 
+any '/system' => sub {
+    my $c = shift;
+ 
+    $c->stash(version => $RAVADA->version );
+
+    $c->render(template => 'bootstrap/system');
+};
+
+
 ###################################################
 
 sub _init_error {

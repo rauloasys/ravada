@@ -30,6 +30,7 @@
                     <ul class="dropdown-menu">
                         <li><a href="/machines"><i class="fa fa-cubes"></i>&nbsp;<%=l 'Machines List' %></a></li>
                         <li><a href="/users"><i class="fa fa-users"></i>&nbsp;<%=l 'Users' %></a></li>
+                        <li><a href="/system"><i class="fa fa-cubes"></i>&nbsp;<%=l 'System' %></a></li>
                     </ul>
                 </li>
 % }
