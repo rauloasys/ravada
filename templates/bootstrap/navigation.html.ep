@@ -30,7 +30,7 @@
                     <ul class="dropdown-menu">
                         <li><a href="/machines"><i class="fa fa-cubes"></i>&nbsp;<%=l 'Machines List' %></a></li>
                         <li><a href="/users"><i class="fa fa-users"></i>&nbsp;<%=l 'Users' %></a></li>
-                        <li><a href="/new_iso"><i class="fa fa-new_iso"></i>&nbsp;<%=l 'New ISO' %></a></li>
+                        <li><a href="/new_iso"><i class="fa fa-cloud-upload"></i>&nbsp;<%=l 'New ISO' %></a></li>
                     </ul>
                 </li>
 % }
