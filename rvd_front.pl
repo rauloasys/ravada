@@ -12,6 +12,8 @@ use Mojolicious::Lite 'Ravada::I18N';
 
 use Mojo::Upload;
 use Mojo::Asset::File;
+use Mojo::UserAgent;
+use Mojo::Upload;
 
 #####
 #my $self->plugin('I18N');
@@ -485,9 +487,21 @@ sub new_iso {
       my $file = $c->param('upload');
       if( $file->filename =~ /\.iso$/ ) {
           my $fileuploaded = $c->req->upload('upload');
-          $fileuploaded->move_to('/var/tmp/'.$c->param('name'));
+          #$fileuploaded->move_to('/var/tmp/'.$c->param('name'));
 
-          $RAVADA->insert_iso( name => $c->param('name'));
+          my ($id_xml, $id_xml_vol);
+          if ($c->param('id_xml') eq 'id_xml_Linux_32') {
+            $id_xml = 'trusty-i386.xml';
+            $id_xml_vol = 'trusty-volume.xml';
+          }
+          if ($c->param('id_xml') eq 'id_xml_Linux_64') {
+            $id_xml = 'trusty-amd64.xml';
+            $id_xml_vol = 'trusty-amd64-volume.xml';
+          }
+
+          $RAVADA->insert_iso( name => $c->param('name'),
+                               xml => $id_xml, xml_volume => $id_xml_vol);
+
       }
     }
     $c->render(template => 'bootstrap/new_iso');

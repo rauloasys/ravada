@@ -298,7 +298,7 @@ sub insert_iso {
     (name,description,arch,xml,xml_volume,url,md5)
     VALUES(?,?,?,?,?,?,?)"
   );
-  $sth->execute($args{name}, undef, undef, undef, undef, undef, undef);
+  $sth->execute($args{name}, undef, undef, $args{xml}, $args{xml_volume}, undef, undef);
 }
 
 =head2 list_lxc_templates
