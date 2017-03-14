@@ -44,11 +44,11 @@ Returns the available space for creation of new volumes. This may be less than t
 
 =cut
 sub spool_free{
+    my $self = shift;
+    my $vm = shift;
     use Ravada;
     use Ravada::VM::KVM;
     use Sys::Virt::StoragePool;
-    
-    my $vm = $ravada->open_vm('KVM'); 
     my $sp = $vm->storage_pool(); 
     my $info = $sp->get_info(available); 
     return $info;
