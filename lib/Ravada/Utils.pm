@@ -37,4 +37,20 @@ sub df_free{
     #my $out = sprintf("Disk space on $dir == %0.2f\n",$df_free);
     return "$df_free";
 }
+
+=head2 spool_free
+
+Returns the available space for creation of new volumes. This may be less than the difference between capacity & allocation if there are sizing/metadata constraints for volume
+
+=cut
+sub spool_free{
+    use Ravada;
+    use Ravada::VM::KVM;
+    use Sys::Virt::StoragePool;
+    
+    my $vm = $ravada->open_vm('KVM'); 
+    my $sp = $vm->storage_pool(); 
+    my $info = $sp->get_info(available); 
+    return $info;
+}
 1;

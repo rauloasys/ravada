@@ -24,7 +24,7 @@
         				</div>
                     </div>
                     <div class="col-sm-4" style="margin-top:56px;">
-        				<p>Disk usage : <%= Ravada::Utils::df_free %><span id="disk-usage" class="hide"></span></p>
+        				<p>Disk usage : <%= Ravada::Utils::spool_free %><span id="disk-usage" class="hide"></span></p>
         				<div class="progress" style="width:250px;">
         					<div class="bar" id="disk-usage-bar" style="width: 0%;"></div>
         				</div>
