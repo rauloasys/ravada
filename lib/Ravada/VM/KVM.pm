@@ -755,7 +755,7 @@ sub _check_md5_remote {
 
 sub _check_md5_local {
     my $self = shift;
-    my $file = @_;
+    my $file = shift;
 
     my  $ctx = Digest::MD5->new;
     open my $in,'<',$file or die "$! $file";
