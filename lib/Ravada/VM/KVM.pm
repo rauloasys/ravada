@@ -43,10 +43,16 @@ has vm => (
     ,lazy => 1
 );
 
-has type => (
+has con_type => (
     isa => 'Str'
     ,is => 'ro'
     ,default => 'qemu'
+);
+
+has type => (
+    isa => 'Str'
+    ,is => 'ro'
+    ,default => 'KVM'
 );
 
 #########################################################################3
@@ -76,9 +82,9 @@ sub _connect {
     confess "undefined host" if !defined $self->host;
 
     if ($self->host eq 'localhost') {
-        $vm = Sys::Virt->new( address => $self->type.":///system" , readonly => $self->readonly);
+        $vm = Sys::Virt->new( address => $self->con_type.":///system" , readonly => $self->readonly);
     } else {
-        $vm = Sys::Virt->new( address => $self->type."+ssh"."://root\@".$self->host."/system"
+        $vm = Sys::Virt->new( address => $self->con_type."+ssh"."://root\@".$self->host."/system"
                                         .'?socket=/var/run/libvirt/libvirt-sock'
                               ,readonly => $self->readonly
                           );
