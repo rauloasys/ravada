@@ -13,6 +13,7 @@ WriteMakefile(
 	      ,'JSON::XS'   => 0
 	        ,'Moose'    => 0
 	  ,'Net::LDAP'  => 0
+      ,'Net::SSH2'  => 0
       ,'Sys::Virt'  => 0
       ,'XML::LibXML'=> 0
              ,'YAML' => 0
