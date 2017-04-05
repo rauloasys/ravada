@@ -1,6 +1,7 @@
 use warnings;
 use strict;
 
+use Carp qw(confess);
 use Data::Dumper;
 use JSON::XS;
 use Test::More;
@@ -65,7 +66,9 @@ sub test_create_domain {
     my $vm_name = shift;
     my $vm_type = shift;
 
-    ($vm_type) = $vm_name =~ /(\w+)_/   if !$vm_type;
+    ($vm_type) = $vm_name =~ /(\w+)_?/   if !$vm_type;
+
+    confess "Missing vm_type"   if !$vm_type;
 
     my $ravada = Ravada->new(@ARG_RVD);
     my $vm = $ravada->search_vm($vm_name);
