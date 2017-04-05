@@ -14,7 +14,6 @@ use Data::Dumper;
 use File::Copy;
 use File::Path qw(make_path);
 use Hash::Util qw(lock_keys);
-use IPC::Run3 qw(run3);
 use Moose;
 use Sys::Virt::Stream;
 use XML::LibXML;
@@ -289,11 +288,7 @@ sub _create_qcow_base {
 
         push @base_img,([$base_img,$target]);
 
-
-        my ($in, $out, $err);
-        run3(\@cmd,\$in,\$out,\$err);
-        warn $out  if $out;
-        warn $err   if $err;
+        $self->_vm->run(@cmd);
 
         if (! -e $base_img) {
             warn "ERROR: Output file $base_img not created at "
@@ -1034,7 +1029,7 @@ sub spinoff_volumes {
               ,$volume
               ,$volume_tmp
         );
-        $self->_vm->_run_remote(@cmd);
+        $self->_vm->run(@cmd);
         die "ERROR: Output file $volume_tmp not created at ".join(" ",@cmd)."\n"
             if (! $self->_vm->file_exists($volume_tmp) );
 
@@ -1082,8 +1077,7 @@ sub _find_base {
     my $self = shift;
     my $file = shift;
     my @cmd = ( 'qemu-img','info',$file);
-    my ($in,$out, $err);
-    run3(\@cmd,\$in, \$out, \$err);
+    my $out = $self->_vm->run(@cmd);
 
     my ($base) = $out =~ m{^backing file: (.*)}mi;
     die "No base for $file in $out" if !$base;
@@ -1108,8 +1102,7 @@ sub clean_swap_volumes {
                 ,'-b',$base
                 ,$file
     	);
-    	my ($in,$out, $err);
-    	run3(\@cmd,\$in, \$out, \$err);
+        my ($out,$err) = $self->_vm->run(@cmd);
     	die $err if $err;
 	}
 }

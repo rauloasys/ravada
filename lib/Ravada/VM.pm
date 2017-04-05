@@ -16,6 +16,7 @@ use Moose::Role;
 use Net::DNS;
 use IO::Socket;
 use IO::Interface;
+use IPC::Run3 qw(run3);
 use Net::Domain qw(hostfqdn);
 
 requires 'connect';
@@ -329,6 +330,8 @@ sub _run_remote {
     $ssh->auth_publickey('root',$ENV{HOME}."/.ssh/id_rsa.pub",$ENV{HOME}.'/.ssh/id_rsa');
     my $chan = $ssh->channel();
 
+    confess "ERROR: Unable to create channel to ".$self->host if !$chan;
+
     warn "Executing in ".$self->host."\n"
         .join(" ",@cmd);
     $chan->exec(join(" ",@cmd)) or die $ssh->die_with_error;
@@ -344,6 +347,23 @@ sub _run_remote {
 #    warn $err if $err;
 
     return $out;
+}
+
+=head2 run
+
+Runs a system command in the virtual manager host.
+
+=cut
+
+sub run {
+    my $self = shift;
+    return $self->_run_remote(@_)   if !$self->_localhost;
+
+    my ($in,$out, $err);
+
+    run3(\@_, \$in, \$out, \$err);
+    return $out if !wantarray;
+    return ($out, $err);
 }
 
 =head2 id
