@@ -356,7 +356,7 @@ sub create_volume {
     eval { $doc = $XML->load_xml(IO => $fh) };
     die "ERROR reading $file_xml $@"    if $@;
 
-    my $img_file = ($path or $self->_tempfile($dir_img,$name));
+    my $img_file = ($path or $self->_volume_path(@_));
     my ($volume_name) = $img_file =~m{.*/(.*)};
     $doc->findnodes('/volume/name/text()')->[0]->setData($volume_name);
     $doc->findnodes('/volume/key/text()')->[0]->setData($img_file);
@@ -389,7 +389,7 @@ sub _tempfile_local {
     my %args = @_;
 
     my (undef, $img_file) = tempfile("$args{name}-XXXX"
-        ,DIR => $dir
+        ,DIR => $args{dir}
         ,OPEN => 0
         ,SUFFIX => $args{suffix}
     );
@@ -420,7 +420,7 @@ sub _volume_path {
 
     $args{name} .= "-".$args{target} if $args{target};
 
-    return $self->_tempfile(%args, suffix => $suffix);
+    return $self->_tempfile(%args, suffix => $suffix, dir => $dir_img);
 
 #    my $filename = $args{name};
 #    $filename .= "-$target" if $target;

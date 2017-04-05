@@ -90,7 +90,7 @@ sub open {
     my $name = shift;
 
     my $sth = $$CONNECTOR->dbh->prepare(
-        "SELECT vtype, host "
+        "SELECT vm_type, hostname "
         ." FROM vms "
         ." WHERE name=?"
     );

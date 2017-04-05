@@ -1329,7 +1329,7 @@ sub add_vm {
     my $vm = $class->new( %args );
 
     my $sth = $CONNECTOR->dbh->prepare("INSERT INTO vms "
-            ."(name, vtype, host)"
+            ."(name, vm_type, hostname)"
             ." VALUES(?,?,?)");
     $sth->execute($name, $type, $host);
     $sth->finish;
