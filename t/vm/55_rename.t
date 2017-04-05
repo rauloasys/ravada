@@ -68,6 +68,7 @@ sub test_rename_domain {
     {
         my $rvd_back = rvd_back();
         my $vm = $rvd_back->search_vm($vm_name);
+        ok($vm,"Expecting a $vm_name virtual manager") or return;
         my $domain = $vm->search_domain($domain_name);
         ok($domain,"[$vm_name] Expecting found $domain_name") 
             or return;
@@ -222,7 +223,7 @@ for my $vm_name (qw( Void KVM )) {
         test_rename_twice($vm_name);
 
         my $domain_name = test_create_domain($vm_name);
-        test_rename_domain($vm_name, $domain_name)  or return;
+        test_rename_domain($vm_name, $domain_name)  or next;
         test_create_domain($vm_name, $domain_name);
     
         $domain_name = test_create_domain($vm_name);
