@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html ng-app="ravada.app">
+%= include 'bootstrap/header'
+<body id="page-top" data-spy="scroll" data-target=".navbar-fixed-top" role="document">
+<div id="wrapper">
+    %= include 'bootstrap/navigation'
+<div id="page-wrapper">
+
+        <!--BASES AND DOMAINS LIST-->
+<div ng-controller="singleMachinePage">
+    <div class="page-header">
+        <div class="panel panel-default">
+             <div class="panel-heading">
+                 <h2>Virtual Machine 
+                     <a ng-hide="domain_remove_done" 
+                         href="/machine/view/<%= $domain->id %>.html"><%= $domain->name %></a>
+                     Settings
+                 </h2>
+             </div> <!-- del panel heading-->
+% if ( $USER->is_admin ) {
+    %= include 'main/vm_remove'
+    %= include 'main/vm_rename'
+    %= include 'main/vm_copy'
+% }
+    %= include 'main/vm_options'
+        </div><!-- del panel default-->
+    </div><!-- del page-header -->
+</div><!-- del ng-controller -->
+
+</div> <!-- del page-wrapper -->
+</div> <!-- del wrapper -->
+    %= include 'bootstrap/scripts'
+    %= include 'bootstrap/messages'
+</body>
+</html>

@@ -258,10 +258,16 @@ for my $host (@host) {
     eval { 
         my $vm = $RAVADA->add_vm( name => "KVM_$host", type => 'KVM', host => $host) ;
         $vm_real  = $vm->vm if $vm;
+
     } if $RAVADA;
     warn $@ if $@;
     SKIP: {
         my $msg = "SKIPPED test: No KVM backend found at $host";
+        if ($vm && $>) {
+            $msg = "SKIPPED: Test must run as root";
+            $vm = undef;
+        }
+
         diag($msg)      if !$vm_real;
         skip $msg,11    if !$vm_real;
     

@@ -1,33 +1,16 @@
-<!DOCTYPE html>
-<html ng-app="ravada.app">
-%= include 'bootstrap/header'
-<body id="page-top" data-spy="scroll" data-target=".navbar-fixed-top" role="document">
-    <div id="wrapper">
-    <div ng-controller="messages">
-    %= include 'bootstrap/navigation'
-    <div id="page-wrapper">
-        <!--BASES AND DOMAINS LIST-->
-
-            <div class="page-header">
-                <div class="panel panel-default">
-                    <div class="panel-heading">
-                        <h2><%=l 'Messages' %>
-
-                        <a style="float: right; margin: 0 10px;" class="btn btn-info" href="/messages.html" "><i class="fa fa-refresh" aria-hidden="true"></i></a>
-
-                        <a style="float: right; margin: 0 10px;" href="/messages/read/all.html" class="btn btn-succes"><i class="fa fa-envelope-o" aria-hidden="true"></i>
-<%=l 'Mark all as Read' %></a>
-
-                        </h2>
-                    </div>
-                    <sol-show-messages></sol-show-messages>
-
-                </div>
-            </div>
-    </div>
-    </div>
-    </div>
-    %= include 'bootstrap/scripts'
-    %= include 'bootstrap/footer'
-</body>
-</html>
+<div id="overNotifications" class="notifications" ng-controller="notifCrtl" ng-cloak>
+<script type="text/ng-template" id="alert.html">
+<div ng-transclude></div>
+</script>
+<div uib-alert ng-repeat="alert in alerts"
+ ng-class="'alert-' + (alert.type || 'warning')"
+  ng-click="closeAlert($index)"
+  ng-mouseover="alert.showMessage = false"
+  ng-mouseleave="alert.showMessage = true"
+  ng-bind-html="alert.subject">
+  {{alert.subject}}
+  <div ng-if="alert.message" ng-init="alert.showMessage = true" ng-hide="alert.showMessage" ng-bind-html="alert.message">
+    {{alert.message}}
+  </div>
+</div>
+</div>

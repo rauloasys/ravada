@@ -9,3 +9,5 @@ t/etc/ravada_ldap.conf
 t/etc/remote_vm.conf
 hypnotoad.pid
 log
+rvd_front.conf
+pkg-debian-out

@@ -41,7 +41,7 @@ msgstr "Atura"
 msgid "View"
 msgstr "Veure"
 
-msgid "Prepare Base"
+msgid "Prepare base"
 msgstr "Preparar base"
 
 msgid "Clone"
@@ -88,3 +88,121 @@ msgstr "Preferències"
 
 msgid "New Machine"
 msgstr "Nova màquina"
+
+msgid "Public"
+msgstr "Públic"
+
+msgid "Status"
+msgstr "Estat"
+
+msgid "Actions"
+msgstr "Accions"
+
+msgid "Machines"
+msgstr "Màquines"
+
+msgid "Down"
+msgstr "Aturada"
+
+msgid "Running"
+msgstr "En marxa"
+
+msgid "ShutDown"
+msgstr "Atura"
+
+msgid "Screenshot"
+msgstr ""
+
+msgid "Paused"
+msgstr "Pausat"
+
+msgid "Machine locked by requested"
+msgstr "Màquina bloquejada per"
+
+msgid "process"
+msgstr "procés"
+
+msgid "Copy"
+msgstr "Còpia"
+
+msgid "Error!"
+msgstr "Error!"
+
+msgid "Backend no available!"
+msgstr "Backend no disponible!"
+
+msgid "Subject"
+msgstr "Assumpte"
+
+msgid "Date"
+msgstr "Data"
+
+msgid "Actions"
+msgstr "Accions"
+
+msgid "Mark as Read"
+msgstr "Marca com a llegit"
+
+msgid "Mark as UnRead"
+msgstr "Marca com a no llegit"
+
+msgid "No message to show!"
+msgstr "No hi ha missatges per mostrar!"
+
+msgid "Admin"
+msgstr "Administrador"
+
+msgid "machines"
+msgstr "màquines"
+
+msgid "users"
+msgstr "usuaris"
+
+msgid "messages"
+msgstr "missatges"
+
+msgid "Admin tools"
+msgstr ""
+
+msgid "Remove base"
+msgstr "Esborra base"
+
+msgid "public"
+msgstr "públic"
+
+msgid "Restore"
+msgstr "Restaura"
+
+msgid "Hybernate"
+msgstr "Hiverna"
+
+msgid "Shutdown"
+msgstr "Atura"
+
+msgid "action"
+msgstr "acció"
+
+msgid "will remove all the contents of the machine"
+msgstr "esborrarà tot el contigut de la màquina"
+
+msgid "Are you sure?"
+msgstr "Estas segur/a?"
+
+msgid "Yes"
+msgstr "Si"
+
+msgid "No"
+msgstr ""
+
+msgid "Make public"
+msgstr "Fes públic"
+
+msgid "Machine settings"
+msgstr "Preferències de la màquina"
+
+msgid "Cannot remove base, machine has clones"
+msgstr "No es pot esborrar la base, la màquina té clons"
+
+msgid "Show/Hide clones"
+msgstr "Veure/Amaga clons"
+
