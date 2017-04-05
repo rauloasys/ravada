@@ -71,6 +71,14 @@ before 'create_volume' => \&_connect;
 
 =head1 CONSTRUCTORS
 
+=cut
+
+sub BUILD {
+    my $self = shift;
+    my $args = $_[0];
+    $self->{_data}->{name} = $args->{name} if $args->{name};
+}
+
 =head2 open
 
 Opens a Virtual Machine Manager
