@@ -1326,16 +1326,9 @@ sub add_vm {
     my $class = 'Ravada::VM::'.uc($type);
 
     bless($vm0,$class);
-    $args{type} = 'qemu'    if $args{type} eq 'KVM';
 
     my $vm = $class->new( %args );
-
-    my $sth = $CONNECTOR->dbh->prepare("INSERT INTO vms "
-            ."(name, vm_type, hostname)"
-            ." VALUES(?,?,?)");
-    $sth->execute($name, $type, $host);
-    $sth->finish;
-
+    $vm->id();
     return $vm;
 }
 
