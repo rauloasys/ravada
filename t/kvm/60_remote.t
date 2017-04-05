@@ -57,11 +57,6 @@ SKIP: {
         diag($msg);
         skip($msg,10);
     }
-    my $vm = Ravada::VM::KVM->new(
-        host => $IP
-    );
-
-    ok($vm);
 
     my $rvd_back = rvd_back();
 
@@ -75,22 +70,22 @@ SKIP: {
         );
     };
     is($@,'');
-    ok($vm2,"Expecting VM");
+    ok($vm2,"Expecting VM") or next;
 
-    ok(defined $vm2 && $vm2->name eq $vm_name);
-    ok(defined $vm2 && $vm2->host eq $IP);
-    ok(defined $vm2 && lc($vm2->type) eq 'kvm');
+    is($vm2->name, $vm_name);
+    is($vm2->host, $IP);
+    is(lc($vm2->type),'kvm');
 
-    eval { 
+    eval {
         $rvd_back->add_vm(
               name => $vm_name
             , type => 'kvm'
         );
     };
-    like($@ ,qr/duplicate|unique/i);
+    is($@ ,'');
 
     my $vm3 = $rvd_back->search_vm($vm_name);
-    ok($vm3,"Expecting a VM searching for '$vm_name'");
+    ok($vm3,"Expecting a VM searching for '$vm_name'") or next;
 
     my $domain = test_create_domain($vm3);
 }
