@@ -41,13 +41,6 @@ requires 'disconnect';
 
 ############################################################
 #
-has 'name' => (
-       isa => 'Str'
-       ,is => 'ro'
-  ,builder => '_set_default_name'
-     ,lazy => 1
-);
-
 has 'host' => (
           isa => 'Str'
          , is => 'ro',
