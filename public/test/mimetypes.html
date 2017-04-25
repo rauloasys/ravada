@@ -1,0 +1,17 @@
+<html>
+<body>
+<div id="example"></div>
+<script type="text/javascript">
+var x=navigator.mimeTypes.length; // store the total no of plugin stored 
+var txt="Total mimetypes installed: "+x+"<br/>";
+txt+="Available mimetypes are->"+"<br/>";
+for(var i=0;i<x;i++)
+{
+  txt+= i+" "+navigator.mimeTypes[i]+" "+JSON.stringify(navigator.mimeTypes[i]) + "<br/>"; 
+  type = navigator.mimeTypes[i];
+  txt += type.type + " "+type.suffixes + " "+type.description;
+}
+document.getElementById("example").innerHTML=txt;
+</script>
+</body>
+</html>
