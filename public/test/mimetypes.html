@@ -7,9 +7,8 @@ var txt="Total mimetypes installed: "+x+"<br/>";
 txt+="Available mimetypes are->"+"<br/>";
 for(var i=0;i<x;i++)
 {
-  txt+= i+" "+navigator.mimeTypes[i]+" "+JSON.stringify(navigator.mimeTypes[i]) + "<br/>"; 
   type = navigator.mimeTypes[i];
-  txt += type.type + " "+type.suffixes + " "+type.description;
+  txt += type.type + " "+type.suffixes + " "+type.description+"<br>";
 }
 document.getElementById("example").innerHTML=txt;
 </script>
