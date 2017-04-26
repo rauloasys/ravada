@@ -974,19 +974,14 @@ sub set_memory {
             ." ($max_mem)"
         if $value > $max_mem;
 
-    confess "ERROR: Requested operation is not valid: domain is not running"
-        if !$self->domain->is_active();
+    if ($self->domain->is_active()) {
+        $self->domain->set_memory($value,Sys::Virt::Domain::MEM_LIVE);
+    } else {
+        $self->domain->set_memory($value,Sys::Virt::Domain::MEM_CONFIG);
+    }
 
-    $self->domain->set_memory($value,Sys::Virt::Domain::MEM_CONFIG);
-#    if (!$self->is_active) {
-#        $self->domain->set_memory($value,Sys::Virt::Domain::MEM_MAXIMUM);
-#        return;
-#    }
-
-    $self->domain->set_memory($value,Sys::Virt::Domain::MEM_LIVE);
-    $self->domain->set_memory($value,Sys::Virt::Domain::MEM_CURRENT);
-#    $self->domain->set_memory($value,Sys::Virt::Domain::MEMORY_HARD_LIMIT);
-#    $self->domain->set_memory($value,Sys::Virt::Domain::MEMORY_SOFT_LIMIT);
+#    $self->domain->set_memory($value,Sys::Virt::Domain::MEM_CURRENT);
+#
 }
 
 =head2 rename

@@ -1433,4 +1433,15 @@ sub import_domain {
     return $domain;
 }
 
+=head2 get_free_memory
+
+Return the amount of physical memory in the host
+
+=cut
+
+sub get_free_memory {
+    my $self = shift;
+    return $self->vm->get_node_memory_stats->{free};
+}
+
 1;

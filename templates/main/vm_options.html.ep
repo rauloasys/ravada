@@ -14,10 +14,13 @@
         <tr><td>
             <label for="ram">Memory</label>
             </td><td>
-            <input type="text" name="ram" size="5" disabled
+            <input type="text" name="ram" size="5"
                                 value="<%= int($domain->get_info->{memory} / 1024) %>">
                                 <b>MB</b> of <%= int($domain->get_info->{max_mem}/1024) %>
-                                MB available.
+                                MB defined.
+%                               my $free_mem = $domain->_vm->get_free_memory / (1024*1024);
+%                               $free_mem = int($free_mem*10)/10;
+                                ( <%= $free_mem %> Gb free )
             </td>
         </tr>
 %       }

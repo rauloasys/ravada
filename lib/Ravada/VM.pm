@@ -40,6 +40,9 @@ requires 'create_volume';
 requires 'connect';
 requires 'disconnect';
 
+# hardware info
+
+requires 'get_free_memory';
 ############################################################
 
 has 'host' => (

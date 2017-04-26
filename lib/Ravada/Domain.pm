@@ -1303,4 +1303,16 @@ sub _dbh {
     return $$CONNECTOR->dbh;
 }
 
+sub get_memory {
+    my $self = shift;
+    return $self->get_info->{memory}
+}
+
+sub get_max_memory {
+    my $self = shift;
+    return $self->get_info->{maxMem}
+}
+
+sub get_max_mem { return get_max_memory(@_) }
+
 1;

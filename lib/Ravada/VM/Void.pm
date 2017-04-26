@@ -111,6 +111,10 @@ sub list_networks {
     return Ravada::NetInterface::Void->new();
 }
 
+sub get_free_memory {
+    return 8 * 1024 * 1024;
+}
+#
 #########################################################################3
 
 1;

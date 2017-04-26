@@ -244,6 +244,33 @@ sub test_settings {
     }
 }
 
+sub test_ram {
+    my $vm_name = shift;
+    my $vm =rvd_back->search_vm($vm_name);
+    my $domain = test_create_domain($vm_name);
+    $domain->start($USER);
+    my $max_mem = $domain->get_max_mem();
+    my $memory = $domain->get_memory();
+
+    my $new_memory = $memory;
+    for ( 1 .. 10 ) {
+        $new_memory = $new_memory - int($memory/10);
+        diag($new_memory);
+        $domain->domain->set_memory($new_memory);
+        my $memory2 = $domain->get_memory();
+        is($memory2, $new_memory);
+
+        $domain->domain->set_memory($new_memory,Sys::Virt::Domain::MEM_LIVE);
+        $memory2 = $domain->get_memory();
+        is($memory2, $new_memory);
+
+        $domain->domain->set_memory($new_memory,Sys::Virt::Domain::MEM_CURRENT);
+        $memory2 = $domain->get_memory();
+
+        is($memory2, $new_memory);
+    }
+}
+
 ################################################################
 
 remove_old_domains();
@@ -264,6 +291,8 @@ SKIP: {
     skip $msg,10    if !$vm;
 
     test_settings($vm_name);
+
+    test_ram($vm_name);
 };
 remove_old_domains();
 remove_old_disks();
